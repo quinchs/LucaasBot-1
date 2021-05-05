@@ -2,7 +2,7 @@
 /LucaasBot/bin
 /LucaasBot/obj
 /LucaasBot/Properties
-/.vs/LucaasBot
+/.vs
 
 # Ignore files
 Extensions.cs
