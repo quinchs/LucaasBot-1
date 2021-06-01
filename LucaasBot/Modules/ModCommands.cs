@@ -18,11 +18,14 @@ namespace LucaasBotBeta.Modules
     public class ModCommands : ModuleBase<SocketCommandContext>
     {
         [Command("warn")]
-        public async Task Warn(SocketGuildUser userAccount = null, [Remainder]string reason = null)
+        public async Task Warn(SocketGuildUser userAccount = null, [Remainder] string reason = null)
         {
             var user = Context.User as SocketGuildUser;
+            var staffRole = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
 
-            if (!user.Roles.Any(x => x.Permissions.ManageMessages))
+            //if (!user.GuildPermissions.KickMembers)
+            if (!user.Roles.Contains(staffRole) && !user.Roles.Contains(devRole))
             {
                 await Context.Channel.SendErrorAsync("You do not have access to use this command!");
                 return;
@@ -51,12 +54,22 @@ namespace LucaasBotBeta.Modules
 
             await Context.Channel.SendInfractionAsync("Warned", userAccount, user, reason);
 
+            var modlogs = Context.Guild.GetTextChannel(663060075740659715);
+            await modlogs.ModlogAsync("Warning", userAccount, reason, user, Context.Channel);
+
             var warnMsg = new EmbedBuilder();
             warnMsg.WithTitle($"You were warned in `{Context.Guild}`");
             warnMsg.AddField($"Reason", reason, true);
             warnMsg.WithFooter($"Warned by {Context.Message.Author.Username}");
             warnMsg.WithCurrentTimestamp();
-            await userAccount.SendMessageAsync("", false, warnMsg.Build());
+            try
+            {
+                await userAccount.SendMessageAsync("", false, warnMsg.Build());
+            }
+            catch
+            {
+                await ReplyAsync("Was unable to inform this user of their infraction.");
+            }
         }
 
         [Command("mute")]
@@ -64,9 +77,12 @@ namespace LucaasBotBeta.Modules
         public async Task Mute(SocketGuildUser userAccount = null, string time = null, [Remainder] string reason = null)
         {
             var user = Context.User as SocketGuildUser;
-            var muteRole = Context.Guild.GetRole(0123456789);
+            var muteRole = Context.Guild.GetRole(465097693379690497);
+            var staffRole = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
 
-            if (!user.Roles.Any(x => x.Permissions.ManageMessages))
+            //if (!user.GuildPermissions.KickMembers)
+            if (!user.Roles.Contains(staffRole) && !user.Roles.Contains(devRole))
             {
                 await Context.Channel.SendErrorAsync("You do not have access to use this command!");
                 return;
@@ -135,12 +151,22 @@ namespace LucaasBotBeta.Modules
             var userObj = getUser.AddModlog(Context.User.Id, reason, "Muted");
             await Context.Channel.SendInfractionAsync("Muted", userAccount, user, reason);
 
+            var modlogs = Context.Guild.GetTextChannel(663060075740659715);
+            await modlogs.ModlogAsync("Mute", userAccount, reason, user, Context.Channel);
+
             var muteMsg = new EmbedBuilder();
             muteMsg.WithTitle($"You were muted in `{Context.Guild}`");
             muteMsg.AddField($"Reason", reason, true);
             muteMsg.WithFooter($"Muted by {Context.Message.Author.ToString()}");
             muteMsg.WithCurrentTimestamp();
-            await userAccount.SendMessageAsync("", false, muteMsg.Build());          
+            try
+            {
+                await userAccount.SendMessageAsync("", false, muteMsg.Build());
+            }
+            catch
+            {
+                await ReplyAsync("Was unable to inform this user of their infraction.");
+            }
         }
 
         [Command("unmute")]
@@ -148,9 +174,12 @@ namespace LucaasBotBeta.Modules
         public async Task Unmute(SocketGuildUser userAccount = null)
         {
             var user = Context.User as SocketGuildUser;
-            var muteRole = Context.Guild.GetRole(0123456789);
+            var muteRole = Context.Guild.GetRole(465097693379690497);
+            var staffRole = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
 
-            if (!user.Roles.Any(x => x.Permissions.ManageMessages))
+            //if (!user.GuildPermissions.KickMembers)
+            if (!user.Roles.Contains(staffRole) && !user.Roles.Contains(devRole))
             {
                 await Context.Channel.SendErrorAsync("You do not have access to use this command!");
                 return;
@@ -183,11 +212,21 @@ namespace LucaasBotBeta.Modules
             mute.WithCurrentTimestamp();
             await ReplyAsync("", false, mute.Build());
 
+            var modlogs = Context.Guild.GetTextChannel(663060075740659715);
+            await modlogs.ModlogAsync("Unmute", userAccount, "None" , user, Context.Channel);
+
             var muteMsg = new EmbedBuilder();
             muteMsg.WithTitle($"You were unmuted in `{Context.Guild}`");
             muteMsg.WithFooter($"Unmuted by {Context.Message.Author.Username}");
             muteMsg.WithCurrentTimestamp();
-            await userAccount.SendMessageAsync("", false, muteMsg.Build());         
+            try
+            {
+                await userAccount.SendMessageAsync("", false, muteMsg.Build());
+            }
+            catch
+            {
+                await ReplyAsync("Was unable to inform this user of their infraction.");
+            }
         }
 
         [Command("kick")]
@@ -195,8 +234,11 @@ namespace LucaasBotBeta.Modules
         public async Task Kick(SocketGuildUser userAccount = null, [Remainder] string reason = null)
         {
             var user = Context.User as SocketGuildUser;
+            var staffRole = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
 
-            if (!user.Roles.Any(x => x.Permissions.ManageMessages))
+            //if (!user.GuildPermissions.KickMembers)
+            if (!user.Roles.Contains(staffRole) && !user.Roles.Contains(devRole))
             {
                 await Context.Channel.SendErrorAsync("You do not have access to use this command!");
                 return;
@@ -229,12 +271,22 @@ namespace LucaasBotBeta.Modules
             var getUser = DiscordUser.GetOrCreateDiscordUser(userAccount);
             var userObj = getUser.AddModlog(Context.User.Id, reason, "Kicked");
 
+            var modlogs = Context.Guild.GetTextChannel(663060075740659715);
+            await modlogs.ModlogAsync("Kick", userAccount, reason, user, Context.Channel);
+
             var kickMsg = new EmbedBuilder();
             kickMsg.WithTitle($"You were kicked from `{Context.Guild}`");
             kickMsg.AddField($"Reason", reason);
             kickMsg.WithFooter($"Kicked by {user.Username}");
             kickMsg.WithCurrentTimestamp();
-            await userAccount.SendMessageAsync($"", false, kickMsg.Build());
+            try
+            {
+                await userAccount.SendMessageAsync("", false, kickMsg.Build());
+            }
+            catch
+            {
+                await ReplyAsync("Was unable to inform this user of their infraction.");
+            }
 
             await Context.Channel.SendInfractionAsync("Kicked", userAccount, user, reason);
 
@@ -246,8 +298,11 @@ namespace LucaasBotBeta.Modules
         public async Task Ban(SocketGuildUser userAccount = null, [Remainder] string reason = null)
         {
             var user = Context.User as SocketGuildUser;
+            var staffRole = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
 
-            if (!user.Roles.Any(x => x.Permissions.ManageMessages))
+            //if (!user.GuildPermissions.KickMembers)
+            if (!user.Roles.Contains(staffRole) && !user.Roles.Contains(devRole))
             {
                 await Context.Channel.SendErrorAsync("You do not have access to use this command!");
                 return;
@@ -280,12 +335,22 @@ namespace LucaasBotBeta.Modules
             var getUser = DiscordUser.GetOrCreateDiscordUser(userAccount);
             var userObj = getUser.AddModlog(Context.User.Id, reason, "Banned");
 
+            var modlogs = Context.Guild.GetTextChannel(663060075740659715);
+            await modlogs.ModlogAsync("Ban", userAccount, reason, user, Context.Channel);
+
             var banMsg = new EmbedBuilder();
             banMsg.WithTitle($"You were banned from `{Context.Guild}`");
             banMsg.AddField($"Reason", reason);
             banMsg.WithFooter($"Banned by {Context.Message.Author.Username}");
             banMsg.WithCurrentTimestamp();
-            await userAccount.SendMessageAsync("", false, banMsg.Build());
+            try
+            {
+                await userAccount.SendMessageAsync("", false, banMsg.Build());
+            }
+            catch
+            {
+                await ReplyAsync("Was unable to inform this user of their infraction.");
+            }
 
             await Context.Channel.SendInfractionAsync("Banned", userAccount, user, reason);
 
@@ -297,8 +362,11 @@ namespace LucaasBotBeta.Modules
         public async Task Modlogs(SocketGuildUser userAccount = null)
         {
             var user = Context.User as SocketGuildUser;
+            var staffRole = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
 
-            if (!user.Roles.Any(x => x.Permissions.ManageMessages))
+            //if (!user.GuildPermissions.KickMembers)
+            if (!user.Roles.Contains(staffRole) && !user.Roles.Contains(devRole))
             {
                 await Context.Channel.SendErrorAsync("You do not have access to use this command!");
                 return;
@@ -358,8 +426,11 @@ namespace LucaasBotBeta.Modules
         public async Task Clearlogs(SocketGuildUser userAccount = null, int logNum = 0)
         {
             var user = Context.User as SocketGuildUser;
+            var staffRole = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
 
-            if (!user.Roles.Any(x => x.Permissions.ManageMessages))
+            //if (!user.GuildPermissions.KickMembers)
+            if (!user.Roles.Contains(staffRole) && !user.Roles.Contains(devRole))
             {
                 await Context.Channel.SendErrorAsync("You do not have access to use this command!");
                 return;
@@ -408,5 +479,193 @@ namespace LucaasBotBeta.Modules
             }
             await Context.Channel.SendMessageAsync("", false, embed.Build());
         }
+
+        //[Command("censor")]
+        //public async Task CensorCommand(string type = null, [Remainder]string text = null)
+        //{
+        //    var user = Context.User as SocketGuildUser;
+        //    var getCensors = Censor.GetCensors(Context.Guild.Id);
+
+        //    if (!user.GuildPermissions.KickMembers)
+        //    {
+        //        await Context.Channel.SendErrorAsync("You do not have access to use this command!");
+        //        return;
+        //    }
+
+        //    if (type == null)
+        //    {
+        //        await Context.Channel.SendErrorAsync("Would you like to `add` or `remove` a phrase?");
+        //        return;
+        //    }
+
+        //    if (type == null)
+        //    {
+        //        await Context.Channel.SendErrorAsync("Please provide the phrase you would like to add or remove!");
+        //        return;
+        //    }
+
+        //    switch (type.ToLower())
+        //    {
+        //        case "add":
+        //            getCensors.Phrase = text;
+        //            break;
+
+        //        case "remove":
+        //            break;
+
+        //        default:
+        //            break;
+        //    }
+        //}
+
+        [Command("terminate")]
+        public async Task TerminateClient()
+        {
+            var devRole = Context.Guild.GetRole(639547493767446538);
+            var user = Context.User as SocketGuildUser;
+
+            if (user.Roles.Contains(devRole) || user.GuildPermissions.Administrator || user.Id == 619241308912877609)
+            {
+                await Context.Client.LogoutAsync();
+            }
+        }
+
+        [Command("restart")]
+        public async Task restart()
+        {
+            var devRole = Context.Guild.GetRole(639547493767446538);
+            var user = Context.User as SocketGuildUser;
+
+            if (user.Roles.Contains(devRole) || user.GuildPermissions.Administrator || user.Id == 619241308912877609)
+            {
+                try
+                {
+                    await Context.Client.LogoutAsync();
+                    await Context.Client.StopAsync();
+
+                    await Task.Delay(2000);
+
+                    await Context.Client.LoginAsync(TokenType.Bot, Additions.Additions.token);
+                    await Context.Client.StartAsync();
+                }
+                catch
+                {
+                    await Context.Channel.SendMessageAsync("Was unable to restart...");
+                }
+
+            }
+        }
+
+        [Command("ping")]
+        public async Task ping()
+        {
+            var ping = new EmbedBuilder();
+            ping.WithTitle("Pinging...");
+            ping.WithColor(Color.Blue);
+            var msg = await ReplyAsync("", false, ping.Build());
+            await msg.ModifyAsync(x => x.Embed = new EmbedBuilder()
+            {
+                Description = $"🏓 Pong: `{Context.Client.Latency}`ms!\n[Check Discord Status](https://status.discord.com)",
+                Color = Color.Blue,
+            }.Build());
+        }
+
+        [Command("slowmode")]
+        [Alias("s")]
+        public async Task Slowmode(int value = 999)
+        {
+            var user = Context.User as SocketGuildUser;
+            var roleStaff = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
+
+            if (!user.Roles.Contains(roleStaff) && !user.Roles.Contains(devRole))
+            {
+                await Context.Channel.SendErrorAsync("You do not have access to use this command!");
+                return;
+            }
+
+            if (value == 999)
+            {
+                await Context.Channel.SendErrorAsync("Please enter a valid number!");
+                return;
+            }
+
+            var channel = Context.Guild.GetTextChannel(Context.Channel.Id);
+            await channel.ModifyAsync(x =>
+            {
+                x.SlowModeInterval = value;
+            });
+
+            await Context.Channel.SendSuccessAsync($"Set the slowmode to `{value}`!");
+            return;
+        }
+
+        //[Command("reason")]
+        //public async Task ChangeReason(SocketGuildUser userAccount = null, int logNum = 0, [Remainder] string reason = null)
+        //{
+        //    var user = Context.User as SocketGuildUser;
+        //    var staffRole = Context.Guild.GetRole(563030072026595339);
+
+        //    //if (!user.GuildPermissions.KickMembers)
+        //    //if (!user.Roles.Contains(staffRole))
+        //    //{
+        //    //    await Context.Channel.SendErrorAsync("You do not have access to use this command!");
+        //    //    return;
+        //    //}
+
+        //    if (userAccount == null)
+        //    {
+        //        await Context.Channel.SendErrorAsync("Please mention a user!");
+        //        return;
+        //    }
+
+        //    if (logNum == 999)
+        //    {
+        //        await Context.Channel.SendErrorAsync("Please provide a number!");
+        //        return;
+        //    }
+
+        //    if (reason == null)
+        //    {
+        //        await Context.Channel.SendErrorAsync("Please provide a reason!");
+        //        return;
+        //    }
+
+        //    var getUser = DiscordUser.GetOrCreateDiscordUser(userAccount);
+        //    var getModlogs = getUser.UserModlogs.OrderBy(x => x.DateCreated).ToArray();
+
+        //    //var embed = new EmbedBuilder();
+        //    //embed.WithColor(Color.Green);
+        //    //embed.WithCurrentTimestamp();
+         
+        //    if (getModlogs.Any())
+        //    {
+        //        if (getModlogs.Count() <= 25)
+        //        {
+        //            //if (getModlogs.Count() < logNum)
+        //            //{
+        //            //    await Context.Channel.SendErrorAsync("Please enter a valid number!");
+        //            //    return;
+        //            //}
+
+        //            var logs = getModlogs[logNum - 1];
+        //            logs.Reason = reason;
+
+        //            var filter = ModlogsCollection.Find(x => x._id == logs._id);
+
+        //            ModlogsCollection.FindOneAndReplace(filter, )
+        //            //await ReplyAsync(logs.Reason);
+        //        }
+        //        else
+        //        {
+        //            await Context.Channel.SendMessageAsync("This user has over 25 modlogs!");
+        //        }
+        //    }
+        //    else
+        //    {
+        //        //embed.WithDescription("This user has no modlogs!");
+        //    }
+        //    //await Context.Channel.SendMessageAsync("", false, embed.Build());
+        //}
     }
 }
