@@ -9,8 +9,8 @@ using System.Collections.Generic;
 using System.Timers;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using static LucaasBotBeta.Handlers.UserHandler;
 using Additions;
+using LucaasBot.DataModels;
 
 namespace LucaasBot.Services
 {
@@ -121,9 +121,9 @@ namespace LucaasBot.Services
             {
                 var row = new ActionRowBuilder();
 
-                foreach (var button in item.Components)
+                foreach (var component in item.Components)
                 {
-                    if (button.CustomId != parsedArg.Data.CustomId)
+                    if (component is ButtonComponent button && button.CustomId != parsedArg.Data.CustomId)
                         row.WithComponent(button);
                 }
 
@@ -163,7 +163,7 @@ namespace LucaasBot.Services
             }
         }
 
-        static MongoClient Client = new MongoClient(Additions.Additions.mongoCS);
+        static MongoClient Client = new MongoClient(ConfigService.Config.MongoCS);
 
         public void AutoModTimer(object s, EventArgs a)
         {
@@ -280,7 +280,7 @@ namespace LucaasBot.Services
             log.WithColor(Color.Red);
             await modlogschannel.SendMessageAsync("", false, log.Build());
 
-            await ConsoleLogAsync("Automod Mute", user.Username);
+            ConsoleLogAsync("Automod Mute", user.Username);
         }
 
         public async Task MessageReceivedAsync(SocketMessage rawMessage)
@@ -332,7 +332,7 @@ namespace LucaasBot.Services
                 Console.ForegroundColor = ConsoleColor.White;
                 return;
             }
-            else
+            else if(result.Error != CommandError.UnknownCommand)
             {
                 var embed = new EmbedBuilder();
                 embed.WithAuthor("Command Error", "https://cdn.discordapp.com/emojis/787035973287542854.png?v=1");
@@ -352,7 +352,7 @@ namespace LucaasBot.Services
             }
         }
 
-        public static async Task ConsoleLogAsync(string action, string user, string details = null)
+        public static void ConsoleLogAsync(string action, string user, string details = null)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             System.Console.WriteLine("Action Success\n------------------------------------");

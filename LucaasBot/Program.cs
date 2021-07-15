@@ -13,36 +13,34 @@ namespace LucaasBot
 
         static void Main(string[] args)
         {
-
+            ConfigService.LoadConfig();
             new Program().MainAsync().GetAwaiter().GetResult();
         }
 
         public async Task MainAsync()
         {
+            var client = new DiscordSocketClient(new DiscordSocketConfig()
             {
-                var client = new DiscordSocketClient(new DiscordSocketConfig()
-                {
-                    //AlwaysAcknowledgeInteractions = true
-                });
-                _client = client;
+                AlwaysAcknowledgeInteractions = false
+            });
+            _client = client;
 
-                client.Log += LogAsync;
-                client.Ready += ReadyAsync;
-                var commandServeice = new CommandService();
-                commandServeice.Log += LogAsync;
+            client.Log += LogAsync;
+            client.Ready += ReadyAsync;
+            var commandServeice = new CommandService();
+            commandServeice.Log += LogAsync;
 
-                await client.LoginAsync(TokenType.Bot, Additions.Additions.token);
-                await client.StartAsync();
+            await client.LoginAsync(TokenType.Bot, ConfigService.Config.Token);
+            await client.StartAsync();
 
-                string gameName = "LucaasBot Beta";
-                await _client.SetGameAsync(gameName);
-                await _client.SetStatusAsync(UserStatus.Online);
+            string gameName = "LucaasBot Beta";
+            await _client.SetGameAsync(gameName);
+            await _client.SetStatusAsync(UserStatus.Online);
 
-                var handler = new CommandHandler(commandServeice, client);
+            var handler = new CommandHandler(commandServeice, client);
 
 
-                await Task.Delay(-1);
-            }
+            await Task.Delay(-1);
         }
 
         private Task LogAsync(LogMessage log)
@@ -56,16 +54,6 @@ namespace LucaasBot
             Console.WriteLine($"Connected as -> {Environment.UserName} :)");
             Console.WriteLine("[" + DateTime.Now.TimeOfDay + "] - " + $"Welcome User!");//"Welcome, " + Environment.UserName + ".");
             return Task.CompletedTask;
-        }
-
-        private ServiceProvider ConfigureServices()
-        {
-            return new ServiceCollection()
-                //.AddSingleton(_config)
-                .AddSingleton<DiscordSocketClient>()
-                .AddSingleton<CommandService>()
-                .AddSingleton<CommandHandler>()
-                .BuildServiceProvider();
         }
     }
 }
