@@ -38,7 +38,7 @@ namespace LucaasBot
             await _client.SetStatusAsync(UserStatus.Online);
 
             var handler = new CommandHandler(commandServeice, client);
-
+            var handlerService = new HandlerService(client);
 
             await Task.Delay(-1);
         }

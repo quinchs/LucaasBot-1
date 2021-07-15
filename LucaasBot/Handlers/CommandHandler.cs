@@ -280,7 +280,7 @@ namespace LucaasBot.Services
             log.WithColor(Color.Red);
             await modlogschannel.SendMessageAsync("", false, log.Build());
 
-            ConsoleLogAsync("Automod Mute", user.Username);
+            ConsoleLog("Automod Mute", user.Username);
         }
 
         public async Task MessageReceivedAsync(SocketMessage rawMessage)
@@ -352,7 +352,7 @@ namespace LucaasBot.Services
             }
         }
 
-        public static void ConsoleLogAsync(string action, string user, string details = null)
+        public static void ConsoleLog(string action, string user, string details = null)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             System.Console.WriteLine("Action Success\n------------------------------------");
