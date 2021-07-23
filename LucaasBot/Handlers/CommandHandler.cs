@@ -256,13 +256,13 @@ namespace LucaasBot.Services
             }
         }
 
-        public async Task GuildMemberUpdated(SocketGuildUser user1, SocketGuildUser user2)
+        public async Task GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> user1, SocketGuildUser user2)
         {
             if (user1.Id == 628246728658911254)
             {
                 if (user2.VoiceChannel?.Id == 623534623720472626)
                 {
-                    await user1.ModifyAsync(x => x.Channel = null);
+                    await user2.ModifyAsync(x => x.Channel = null);
                 }
             }
             else

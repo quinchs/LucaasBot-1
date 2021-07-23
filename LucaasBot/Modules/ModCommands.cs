@@ -730,7 +730,7 @@ namespace LucaasBot.Modules
                 return;
             }
 
-            var database = Client.GetDatabase("LucaasBot");
+            var database = MongoService.Client.GetDatabase("LucaasBot");
             var collection = database.GetCollection<BsonDocument>("modlogs");
             var documents = collection.Find(FilterDefinition<BsonDocument>.Empty).ToList();
 
