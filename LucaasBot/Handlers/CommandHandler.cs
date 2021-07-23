@@ -24,6 +24,7 @@ namespace LucaasBot.Services
         public Timer t = new Timer();
         public Timer a = new Timer();
         public static int autoModMessageCounter = 5;
+        public Timer johnPing = new Timer();
 
         public CommandHandler(CommandService service, DiscordSocketClient client)
         {
@@ -33,10 +34,14 @@ namespace LucaasBot.Services
             _commands.CommandExecuted += CommandExecutedAsync;
             _client.MessageReceived += MessageReceivedAsync;
 
-            _client.InteractionCreated += InteractionCreated;
+            //_client.InteractionCreated += InteractionCreated;
 
             _client.MessageReceived += AutoModMsgRecieved;
-                
+
+            //_client.UserVoiceStateUpdated += VoiceStateUpdate;
+
+            _client.GuildMemberUpdated += GuildMemberUpdated;
+
             t.Interval = 1000;
             t.Start();
             t.Elapsed += MuteTimer;
@@ -45,73 +50,95 @@ namespace LucaasBot.Services
             a.Start();
             a.Elapsed += AutoModTimer;
 
+            johnPing.Interval = 28800000;
+            johnPing.Start();
+            johnPing.Elapsed += JohnPing;
+
             _commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
         }
         
         private Dictionary<ulong, (int messageCount, ulong channelId)> channelMessageCount = new Dictionary<ulong, (int messageCount, ulong channelId)>();
 
-        private async Task InteractionCreated(SocketInteraction arg)
-        {
-            // If the type of the interaction is a message component
-            if (arg.Type == Discord.InteractionType.MessageComponent)
-            {
-                // parse the args 
-                var parsedArg = (SocketMessageComponent)arg;
-                var userAccount = (SocketGuildUser)parsedArg.User;
-                var channel = (SocketTextChannel)parsedArg.Channel;
-                var msg = (SocketUserMessage)parsedArg.Message;
+        //private async Task InteractionCreated(SocketInteraction arg)
+        //{
+        //    // If the type of the interaction is a message component
+        //    if (arg.Type == Discord.InteractionType.MessageComponent)
+        //    {
+        //        // parse the args 
+        //        var parsedArg = (SocketMessageComponent)arg;
+        //        var userAccount = (SocketGuildUser)parsedArg.User;
+        //        var channel = (SocketTextChannel)parsedArg.Channel;
+        //        var msg = (SocketUserMessage)parsedArg.Message;
 
-                if (parsedArg.Data.CustomId.StartsWith($"unmute_"))
-                {
-                    ulong userid = ulong.Parse(parsedArg.Data.CustomId.Replace("unmute_", ""));
-                    //ulong userid = ulong.Parse(parsedArg.Data.CustomId.Replace();
-                    var guild = _client.GetGuild(guildId);
-                    var user = guild.GetUser(userid);
-                    var muted = guild.GetRole(465097693379690497);
-                    var staffRole = guild.GetRole(563030072026595339);
-                    var devRole = guild.GetRole(639547493767446538);
+        //        if (parsedArg.Data.CustomId.StartsWith($"unmute_"))
+        //        {
+        //            ulong userid = ulong.Parse(parsedArg.Data.CustomId.Replace("unmute_", ""));
+        //            //ulong userid = ulong.Parse(parsedArg.Data.CustomId.Replace();
+        //            var guild = _client.GetGuild(guildId);
+        //            var user = guild.GetUser(userid);
+        //            var muted = guild.GetRole(465097693379690497);
+        //            var staffRole = guild.GetRole(563030072026595339);
+        //            var devRole = guild.GetRole(639547493767446538);
 
-                    if (!user.Roles.Contains(muted))
-                    {
-                        return;
-                    }
+        //            if (!user.Roles.Contains(muted))
+        //            {
+        //                return;
+        //            }
 
-                    if (userAccount.Roles.Contains(staffRole) || userAccount.Roles.Contains(devRole))
-                    {
-                        await user.RemoveRoleAsync(muted);
-                        await parsedArg.Channel.SendSuccessAsync($"Unmuted {user.Mention}", $"Unmuted by {parsedArg.User}");
-                        //await RemoveButton(parsedArg, msg);
-                        return;
-                    }                   
-                }
+        //            if (userAccount.Roles.Contains(staffRole) || userAccount.Roles.Contains(devRole))
+        //            {
+        //                await user.RemoveRoleAsync(muted);
+        //                await parsedArg.Channel.SendSuccessAsync($"Unmuted {user.Mention}", $"Unmuted by {parsedArg.User}");
+        //                //await RemoveButton(parsedArg, msg);
+        //                return;
+        //            }                   
+        //        }
 
-                if (parsedArg.Data.CustomId == "cancelSlow")
-                {
-                    var guild = _client.GetGuild(guildId);
-                    var staffRole = guild.GetRole(563030072026595339);
-                    var devRole = guild.GetRole(639547493767446538);
+        //        if (parsedArg.Data.CustomId == "cancelSlow")
+        //        {
+        //            var guild = _client.GetGuild(guildId);
+        //            var staffRole = guild.GetRole(563030072026595339);
+        //            var devRole = guild.GetRole(639547493767446538);
 
-                    if (channel.SlowModeInterval == 0)
-                    {
-                        return;
-                    }
+        //            if (channel.SlowModeInterval == 0)
+        //            {
+        //                return;
+        //            }
 
-                    if (userAccount.Roles.Contains(staffRole) || userAccount.Roles.Contains(devRole))
-                    {
-                        await channel.ModifyAsync(x =>
-                        {
-                            x.SlowModeInterval = 0;
-                        });
-                        await parsedArg.Channel.SendSuccessAsync($"Set slowmode to `0`", $"Action by {parsedArg.User}");
+        //            if (userAccount.Roles.Contains(staffRole) || userAccount.Roles.Contains(devRole))
+        //            {
+        //                await channel.ModifyAsync(x =>
+        //                {
+        //                    x.SlowModeInterval = 0;
+        //                });
+        //                await parsedArg.Channel.SendSuccessAsync($"Set slowmode to `0`", $"Action by {parsedArg.User}");
 
-                        //await RemoveButton(parsedArg, msg);
-                        return;
-                    }                     
-                }
-                // respond with the update message response type. This edits the original message if you have set AlwaysAcknowledgeInteractions to false.
-                //await parsedArg.RespondAsync($"Clicked {parsedArg.Data.CustomId}!", type: InteractionResponseType.UpdateMessage);
-            }
-        }
+        //                //await RemoveButton(parsedArg, msg);
+        //                return;
+        //            }                     
+        //        }
+        //        // respond with the update message response type. This edits the original message if you have set AlwaysAcknowledgeInteractions to false.
+        //        //await parsedArg.RespondAsync($"Clicked {parsedArg.Data.CustomId}!", type: InteractionResponseType.UpdateMessage);
+
+        //        if (parsedArg.Data.CustomId == "test")
+        //        {
+        //            var role = _client.GetGuild(guildId).GetRole(618852744354332692);
+        //            await userAccount.AddRoleAsync(role);
+        //        }
+        //    }
+        //}
+
+        //private async Task VoiceStateUpdate(SocketUser user, SocketVoiceState state1, SocketVoiceState state2)
+        //{
+        //    var userAccount = (SocketGuildUser)user;
+        //    if (user.IsBot)
+        //        return;
+
+        //    if (state2.VoiceChannel?.Id == 623534623720472626)
+        //    {
+        //        await userAccount.VoiceChannel.DisconnectAsync();
+        //    }
+        //}
 
         public async Task RemoveButton(SocketMessageComponent parsedArg, SocketUserMessage msg)
         {
@@ -197,13 +224,14 @@ namespace LucaasBot.Services
                 ulong userid = (ulong)userid1;
                 var mutes = UserMutes.GetOrCreateMute(userid);
 
+                var muterole = _client.GetGuild(guildId).GetRole(465097693379690497);
                 var user = _client.GetGuild(guildId).GetUser(userid);
 
                 if (mutes.Type == "s")
                 {
                     if ((DateTime.UtcNow - mutes.DateTime).TotalSeconds > mutes.Time)
                     {
-                        //user.RemoveRoleAsync(muterole);
+                        user.RemoveRoleAsync(muterole);
                         collection.DeleteOne(doc);
                     }
                 }
@@ -212,7 +240,7 @@ namespace LucaasBot.Services
                 {
                     if ((DateTime.UtcNow - mutes.DateTime).TotalMinutes > mutes.Time)
                     {
-                        //user.RemoveRoleAsync(muterole);
+                        user.RemoveRoleAsync(muterole);
                         collection.DeleteOne(doc);
                     }
                 }
@@ -221,13 +249,35 @@ namespace LucaasBot.Services
                 {
                     if ((DateTime.UtcNow - mutes.DateTime).TotalHours > mutes.Time)
                     {
-                        //user.RemoveRoleAsync(muterole);
+                        user.RemoveRoleAsync(muterole);
                         collection.DeleteOne(doc);
                     }
                 }
             }
         }
-    
+
+        public async Task GuildMemberUpdated(SocketGuildUser user1, SocketGuildUser user2)
+        {
+            if (user1.Id == 628246728658911254)
+            {
+                if (user2.VoiceChannel?.Id == 623534623720472626)
+                {
+                    await user1.ModifyAsync(x => x.Channel = null);
+                }
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        public async void JohnPing(object s, EventArgs a)
+        {
+            var channel = _client.GetGuild(guildId).GetTextChannel(465083688795766785);
+            await channel.SendMessageAsync("<@561464966427705374> ");
+        }
+
+
         public async Task AutomodMute(ulong userId, ulong channelId)
         {
             var guild = _client.GetGuild(guildId);
@@ -269,9 +319,9 @@ namespace LucaasBot.Services
             {
                 embed.WithDescription("AutoModeration detected a potential raid! Slowmode was not set!");
             }
-            //await guild.GetTextChannel(channelId).SendMessageAsync("", false, embed.Build());
-            var builder = new ComponentBuilder().WithButton("Unmute User", $"unmute_{userId}", ButtonStyle.Primary).WithButton("Slowmode 0", "cancelSlow", ButtonStyle.Primary);
-            await guild.GetTextChannel(channelId).SendMessageAsync("", embed: embed.Build(), component: builder.Build());
+            await guild.GetTextChannel(channelId).SendMessageAsync("", false, embed.Build());
+            //var builder = new ComponentBuilder().WithButton("Unmute User", $"unmute_{userId}", ButtonStyle.Primary).WithButton("Slowmode 0", "cancelSlow", ButtonStyle.Primary);
+            //await guild.GetTextChannel(channelId).SendMessageAsync("", embed: embed.Build(), component: builder.Build());
 
             var modlogschannel = _client.GetGuild(guildId).GetTextChannel(581614769237262357);
             var log = new EmbedBuilder();
@@ -294,6 +344,15 @@ namespace LucaasBot.Services
             {
                 return;
             }
+
+            if (rawMessage.Author.Id == 199641055837159425)
+            {
+                if (rawMessage.Content.Contains("https://media1.tenor.com/images/9bf9711f86faa7d136a26b6f09a00687/tenor.gif"))
+                {
+                    await rawMessage.Channel.SendMessageAsync("https://media.tenor.com/images/7b56e0f8fbc3b6b29353260b7efa2278/tenor.gif", messageReference: new MessageReference(rawMessage.Id, rawMessage.Channel.Id, guildId));
+                }
+            }
+            
 
             var argPos = 0;
             char prefix = '=';

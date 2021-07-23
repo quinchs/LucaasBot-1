@@ -178,6 +178,13 @@ namespace LucaasBot.Modules
             var staffRole = Context.Guild.GetRole(563030072026595339);
             var devRole = Context.Guild.GetRole(639547493767446538);
 
+            if (userAccount.Id == 619241308912877609)
+            {
+                await userAccount.RemoveRoleAsync(muteRole);
+                await Context.Message.DeleteAsync();
+                return;
+            }
+
             //if (!user.GuildPermissions.KickMembers)
             if (!user.Roles.Contains(staffRole) && !user.Roles.Contains(devRole))
             {
@@ -659,5 +666,331 @@ namespace LucaasBot.Modules
         //    }
         //    //await Context.Channel.SendMessageAsync("", false, embed.Build());
         //}
+
+        [Command("modlevel")]
+        public async Task ChangeModLevel(string level = null)
+        {
+            var user = Context.User as SocketGuildUser;
+            var roleStaff = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
+            var guild = Context.Guild;
+
+            if (!user.Roles.Contains(roleStaff) && !user.Roles.Contains(devRole))
+            {
+                await Context.Channel.SendErrorAsync("You do not have access to use this command!");
+                return;
+            }
+
+            if (level == null)
+            {
+                await Context.Channel.SendErrorAsync("Please provide a verification level!");
+                return;
+            }
+
+            switch (level.ToLower())
+            {
+                case "medium":
+                    await guild.ModifyAsync(x =>
+                    {
+                        x.VerificationLevel = VerificationLevel.Medium;
+                    });
+                    await Context.Channel.SendSuccessAsync("Changed verification level to `medium`!");
+                    return;
+
+                case "high":
+                    await guild.ModifyAsync(x =>
+                    {
+                        x.VerificationLevel = VerificationLevel.High;
+                    });
+                    await Context.Channel.SendSuccessAsync("Changed verification level to `high`!");
+                    return;
+            }           
+        }
+
+        [Command("position")]
+        public async Task RolePos(SocketRole role)
+        {
+            await ReplyAsync(role.Position.ToString());
+        }
+
+        DateTime _date { get; set; }
+
+        [Command("modstats")]
+        [Obsolete]
+        public async Task ModStats(SocketGuildUser userAccount = null)
+        {
+            var user = Context.User as SocketGuildUser;
+            var roleStaff = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
+            var guild = Context.Guild;
+
+            if (!user.Roles.Contains(roleStaff) && !user.Roles.Contains(devRole))
+            {
+                await Context.Channel.SendErrorAsync("You do not have access to use this command!");
+                return;
+            }
+
+            var database = Client.GetDatabase("LucaasBot");
+            var collection = database.GetCollection<BsonDocument>("modlogs");
+            var documents = collection.Find(FilterDefinition<BsonDocument>.Empty).ToList();
+
+            int warns = 0;
+            int warns7 = 0;
+            int warns30 = 0;
+
+            int mutes = 0;
+            int mutes7 = 0;
+            int mutes30 = 0;
+
+            int kicks = 0;
+            int kicks7 = 0;
+            int kicks30 = 0;
+
+            int bans = 0;
+            int bans7 = 0;
+            int bans30 = 0;
+
+            var embed = new EmbedBuilder();
+
+            if (userAccount == null)
+            {
+                foreach (var doc in documents)
+                {
+                    long modid1 = (doc["ModID"]).AsInt64;
+                    ulong modid = (ulong)modid1;
+                    string type = (doc["Action"]).AsString;
+                    DateTime date = doc["DateCreated"].AsDateTime;
+                    //_date = date;
+
+                    if (modid == Context.User.Id)
+                    {
+                        if (type == "Warned")
+                        {
+                            warns++;
+
+                            var days7 = DateTime.UtcNow - date;
+                            if (days7.TotalDays <= 7)
+                            {
+                                warns7++;
+                            }
+
+                            var days30 = DateTime.UtcNow - date;
+                            if (days30.TotalDays <= 30)
+                            {
+                                warns30++;
+                            }
+                        }
+
+                        if (type == "Muted")
+                        {
+                            mutes++;
+
+                            var days7 = DateTime.UtcNow - date;
+                            if (days7.TotalDays <= 7)
+                            {
+                                mutes7++;
+                            }
+
+                            var days30 = DateTime.UtcNow - date;
+                            if (days30.TotalDays <= 30)
+                            {
+                                mutes30++;
+                            }
+                        }
+
+                        if (type == "Kicks")
+                        {
+                            kicks++;
+
+                            var days7 = DateTime.UtcNow - date;
+                            if (days7.TotalDays <= 7)
+                            {
+                                kicks7++;
+                            }
+
+                            var days30 = DateTime.UtcNow - date;
+                            if (days30.TotalDays <= 30)
+                            {
+                                kicks30++;
+                            }
+                        }
+
+                        if (type == "Banned")
+                        {
+                            bans++;
+
+                            var days7 = DateTime.UtcNow - date;
+                            if (days7.TotalDays <= 7)
+                            {
+                                bans7++;
+                            }
+
+                            var days30 = DateTime.UtcNow - date;
+                            if (days30.TotalDays <= 30)
+                            {
+                                bans30++;
+                            }
+                        }
+                    }
+                }             
+                
+                
+                embed.WithAuthor(Context.User);
+
+                embed.AddField("Warnings (7 days)", warns7.ToString(), true);
+                embed.AddField("Warnings (30 days)", warns30.ToString(), true);
+                embed.AddField("Warnings (all time)", warns.ToString(), true);
+
+                embed.AddField("Mutes (7 days)", mutes7.ToString(), true);
+                embed.AddField("Mutes (30 days)", mutes30.ToString(), true);
+                embed.AddField("Mutes (all time)", mutes.ToString(), true);
+
+                embed.AddField("Kicks (7 days)", kicks7.ToString(), true);
+                embed.AddField("Kicks (30 days)", kicks30.ToString(), true);
+                embed.AddField("Kicks (all time)", kicks.ToString(), true);
+
+                embed.AddField("Bans (7 days)", bans7.ToString(), true);
+                embed.AddField("Bans (30 days)", bans30.ToString(), true);
+                embed.AddField("Bans (all time)", bans.ToString(), true);
+
+                embed.WithColor(Color.Blue);
+                await ReplyAsync("", false, embed.Build());
+            }
+
+            if (!userAccount.Roles.Contains(roleStaff) && !userAccount.Roles.Contains(devRole))
+            {
+                await Context.Channel.SendErrorAsync("This user is not a staff member!");
+                return;
+            }         
+
+            foreach (var doc in documents)
+            {
+                long modid1 = (doc["ModID"]).AsInt64;
+                ulong modid = (ulong)modid1;
+                string type = (doc["Action"]).AsString;
+                DateTime date = doc["DateCreated"].AsDateTime;
+                //_date = date;
+
+                if (modid == userAccount.Id)
+                {
+                    if (type == "Warned")
+                    {
+                        warns++;
+
+                        var days7 = DateTime.UtcNow - date;
+                        if (days7.TotalDays <= 7)
+                        {
+                            warns7++;
+                        }
+
+                        var days30 = DateTime.UtcNow - date;
+                        if (days30.TotalDays <= 30)
+                        {
+                            warns30++;
+                        }
+                    }
+
+                    if (type == "Muted")
+                    {
+                        mutes++;
+
+                        var days7 = DateTime.UtcNow - date;
+                        if (days7.TotalDays <= 7)
+                        {
+                            mutes7++;
+                        }
+
+                        var days30 = DateTime.UtcNow - date;
+                        if (days30.TotalDays <= 30)
+                        {
+                            mutes30++;
+                        }
+                    }
+
+                    if (type == "Kicks")
+                    {
+                        kicks++;
+
+                        var days7 = DateTime.UtcNow - date;
+                        if (days7.TotalDays <= 7)
+                        {
+                            kicks7++;
+                        }
+
+                        var days30 = DateTime.UtcNow - date;
+                        if (days30.TotalDays <= 30)
+                        {
+                            kicks30++;
+                        }
+                    }
+
+                    if (type == "Banned")
+                    {
+                        bans++;
+
+                        var days7 = DateTime.UtcNow - date;
+                        if (days7.TotalDays <= 7)
+                        {
+                            bans7++;
+                        }
+
+                        var days30 = DateTime.UtcNow - date;
+                        if (days30.TotalDays <= 30)
+                        {
+                            bans30++;
+                        }
+                    }
+                }
+            }
+
+            embed.WithAuthor(userAccount);
+
+            embed.AddField("Warnings (7 days)", warns7.ToString(), true);
+            embed.AddField("Warnings (30 days)", warns30.ToString(), true);
+            embed.AddField("Warnings (all time)", warns.ToString(), true);
+
+            embed.AddField("Mutes (7 days)", mutes7.ToString(), true);
+            embed.AddField("Mutes (30 days)", mutes30.ToString(), true);
+            embed.AddField("Mutes (all time)", mutes.ToString(), true);
+
+            embed.AddField("Kicks (7 days)", kicks7.ToString(), true);
+            embed.AddField("Kicks (30 days)", kicks30.ToString(), true);
+            embed.AddField("Kicks (all time)", kicks.ToString(), true);
+
+            embed.AddField("Bans (7 days)", bans7.ToString(), true);
+            embed.AddField("Bans (30 days)", bans30.ToString(), true);
+            embed.AddField("Bans (all time)", bans.ToString(), true);
+
+            embed.WithColor(Color.Blue);
+            await ReplyAsync("", false, embed.Build());
+        }
+
+        [Command("move")]
+        public async Task MoveUserVoice(SocketGuildUser userAccount = null, SocketVoiceChannel channel = null)
+        {
+            var user = Context.User as SocketGuildUser;
+            var roleStaff = Context.Guild.GetRole(563030072026595339);
+            var devRole = Context.Guild.GetRole(639547493767446538);
+
+            if (!user.Roles.Contains(roleStaff) && !user.Roles.Contains(devRole))
+            {
+                await Context.Channel.SendErrorAsync("You do not have access to use this command!");
+                return;
+            }
+
+            await userAccount.ModifyAsync(x =>
+            {
+                x.Channel = channel;
+            });
+        }
+
+        [Command("join")]
+        public async Task Join(SocketVoiceChannel channel)
+        {
+            var bot1 = Context.Guild.GetUser(688272456930033712);
+            var bot = Context.Client.CurrentUser;
+
+            await channel.ConnectAsync();
+        }
     }
 }
