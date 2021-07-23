@@ -9,8 +9,8 @@ using System.Collections.Generic;
 using System.Timers;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using static LucaasBotBeta.Handlers.UserHandler;
 using Additions;
+using LucaasBot.DataModels;
 
 namespace LucaasBot.Services
 {
@@ -148,9 +148,9 @@ namespace LucaasBot.Services
             {
                 var row = new ActionRowBuilder();
 
-                foreach (var button in item.Components)
+                foreach (var component in item.Components)
                 {
-                    if (button.CustomId != parsedArg.Data.CustomId)
+                    if (component is ButtonComponent button && button.CustomId != parsedArg.Data.CustomId)
                         row.WithComponent(button);
                 }
 
@@ -190,7 +190,7 @@ namespace LucaasBot.Services
             }
         }
 
-        static MongoClient Client = new MongoClient(Additions.Additions.mongoCS);
+        static MongoClient Client = new MongoClient(ConfigService.Config.MongoCS);
 
         public void AutoModTimer(object s, EventArgs a)
         {
@@ -256,13 +256,13 @@ namespace LucaasBot.Services
             }
         }
 
-        public async Task GuildMemberUpdated(SocketGuildUser user1, SocketGuildUser user2)
+        public async Task GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> user1, SocketGuildUser user2)
         {
             if (user1.Id == 628246728658911254)
             {
                 if (user2.VoiceChannel?.Id == 623534623720472626)
                 {
-                    await user1.ModifyAsync(x => x.Channel = null);
+                    await user2.ModifyAsync(x => x.Channel = null);
                 }
             }
             else
@@ -330,7 +330,7 @@ namespace LucaasBot.Services
             log.WithColor(Color.Red);
             await modlogschannel.SendMessageAsync("", false, log.Build());
 
-            await ConsoleLogAsync("Automod Mute", user.Username);
+            ConsoleLog("Automod Mute", user.Username);
         }
 
         public async Task MessageReceivedAsync(SocketMessage rawMessage)
@@ -391,7 +391,7 @@ namespace LucaasBot.Services
                 Console.ForegroundColor = ConsoleColor.White;
                 return;
             }
-            else
+            else if(result.Error != CommandError.UnknownCommand)
             {
                 var embed = new EmbedBuilder();
                 embed.WithAuthor("Command Error", "https://cdn.discordapp.com/emojis/787035973287542854.png?v=1");
@@ -411,7 +411,7 @@ namespace LucaasBot.Services
             }
         }
 
-        public static async Task ConsoleLogAsync(string action, string user, string details = null)
+        public static void ConsoleLog(string action, string user, string details = null)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             System.Console.WriteLine("Action Success\n------------------------------------");

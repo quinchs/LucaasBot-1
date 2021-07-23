@@ -6,14 +6,14 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using MongoDB.Driver;
-using static LucaasBotBeta.Handlers.UserHandler;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Additions;
 using MongoDB.Bson;
+using LucaasBot.DataModels;
 
-namespace LucaasBotBeta.Modules
+namespace LucaasBot.Modules
 {
     public class ModCommands : ModuleBase<SocketCommandContext>
     {
@@ -421,14 +421,6 @@ namespace LucaasBotBeta.Modules
             await Context.Channel.SendMessageAsync("", false, embed.Build());
         }
 
-        static MongoClient Client = new MongoClient(Additions.Additions.mongoCS);
-
-        static IMongoDatabase Database
-            => Client.GetDatabase("LucaasBot");
-
-        static IMongoCollection<Modlogs> ModlogsCollection
-            => Database.GetCollection<Modlogs>("modlogs");
-
         [Command("clearlogs")]
         public async Task Clearlogs(SocketGuildUser userAccount = null, int logNum = 0)
         {
@@ -552,7 +544,7 @@ namespace LucaasBotBeta.Modules
 
                     await Task.Delay(2000);
 
-                    await Context.Client.LoginAsync(TokenType.Bot, Additions.Additions.token);
+                    await Context.Client.LoginAsync(TokenType.Bot, ConfigService.Config.Token);
                     await Context.Client.StartAsync();
                 }
                 catch
@@ -738,7 +730,7 @@ namespace LucaasBotBeta.Modules
                 return;
             }
 
-            var database = Client.GetDatabase("LucaasBot");
+            var database = MongoService.Client.GetDatabase("LucaasBot");
             var collection = database.GetCollection<BsonDocument>("modlogs");
             var documents = collection.Find(FilterDefinition<BsonDocument>.Empty).ToList();
 
