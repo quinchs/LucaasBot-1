@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Timers;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Additions;
+using LucaasBot;
 using LucaasBot.DataModels;
 
 namespace LucaasBot.Services
@@ -21,7 +21,6 @@ namespace LucaasBot.Services
         private readonly CommandService _commands;
         private readonly DiscordSocketClient _client;
         public ulong guildId = 464733888447643650;
-        public Timer t = new Timer();
         public Timer a = new Timer();
         public static int autoModMessageCounter = 5;
         public Timer johnPing = new Timer();
@@ -42,10 +41,6 @@ namespace LucaasBot.Services
 
             _client.GuildMemberUpdated += GuildMemberUpdated;
 
-            t.Interval = 1000;
-            t.Start();
-            t.Elapsed += MuteTimer;
-
             a.Interval = 1000;
             a.Start();
             a.Elapsed += AutoModTimer;
@@ -55,6 +50,8 @@ namespace LucaasBot.Services
             johnPing.Elapsed += JohnPing;
 
             _commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
+
+            Logger.Write("Command handler <Green>Initialized</Green>", Severity.Core);
         }
         
         private Dictionary<ulong, (int messageCount, ulong channelId)> channelMessageCount = new Dictionary<ulong, (int messageCount, ulong channelId)>();
@@ -190,8 +187,6 @@ namespace LucaasBot.Services
             }
         }
 
-        static MongoClient Client = new MongoClient(ConfigService.Config.MongoCS);
-
         public void AutoModTimer(object s, EventArgs a)
         {
             foreach (var item in channelMessageCount)
@@ -208,52 +203,6 @@ namespace LucaasBot.Services
                 }
             }
             channelMessageCount.Clear();
-        }
-
-        public void MuteTimer(object s, EventArgs a)
-        {
-            var database = Client.GetDatabase("LucaasBot");
-            var collection = database.GetCollection<BsonDocument>("mute-times");
-
-            ////SocketRole muterole = _client.GetGuild(guildId).GetRole(465097693379690497);
-
-            var documents = collection.Find(FilterDefinition<BsonDocument>.Empty).ToList();
-            foreach (var doc in documents)
-            {
-                long userid1 = (doc["UserID"]).AsInt64;
-                ulong userid = (ulong)userid1;
-                var mutes = UserMutes.GetOrCreateMute(userid);
-
-                var muterole = _client.GetGuild(guildId).GetRole(465097693379690497);
-                var user = _client.GetGuild(guildId).GetUser(userid);
-
-                if (mutes.Type == "s")
-                {
-                    if ((DateTime.UtcNow - mutes.DateTime).TotalSeconds > mutes.Time)
-                    {
-                        user.RemoveRoleAsync(muterole);
-                        collection.DeleteOne(doc);
-                    }
-                }
-
-                if (mutes.Type == "m")
-                {
-                    if ((DateTime.UtcNow - mutes.DateTime).TotalMinutes > mutes.Time)
-                    {
-                        user.RemoveRoleAsync(muterole);
-                        collection.DeleteOne(doc);
-                    }
-                }
-
-                if (mutes.Type == "h")
-                {
-                    if ((DateTime.UtcNow - mutes.DateTime).TotalHours > mutes.Time)
-                    {
-                        user.RemoveRoleAsync(muterole);
-                        collection.DeleteOne(doc);
-                    }
-                }
-            }
         }
 
         public async Task GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> user1, SocketGuildUser user2)
@@ -330,7 +279,7 @@ namespace LucaasBot.Services
             log.WithColor(Color.Red);
             await modlogschannel.SendMessageAsync("", false, log.Build());
 
-            ConsoleLog("Automod Mute", user.Username);
+            Logger.Write($"User {user} was automuted", Severity.Core, Severity.Verbose);
         }
 
         public async Task MessageReceivedAsync(SocketMessage rawMessage)
@@ -373,25 +322,16 @@ namespace LucaasBot.Services
 
             if (!command.IsSpecified)
             {
-                System.Console.WriteLine("Unknown Command Was Used");
-
+                Logger.Write("Unknown Command Was Used", Severity.Core, Severity.Verbose);
                 return;
             }
 
             // log success to the console and exit this method
             if (result.IsSuccess)
             {
-                Console.ForegroundColor = ConsoleColor.Green;
-                System.Console.WriteLine("Command Success\n------------------------------------");
-                Console.ForegroundColor = ConsoleColor.White;
-                string time = DateTime.Now.ToString("hh:mm:ss tt");
-                System.Console.WriteLine($"Command: [{command.Value.Name}]\nUser: [{context.User.Username}]\nTime: {time}");
-                Console.ForegroundColor = ConsoleColor.Green;
-                System.Console.WriteLine("------------------------------------");
-                Console.ForegroundColor = ConsoleColor.White;
-                return;
+                Logger.Write($"Command: [{command.Value.Name}] User: [{context.User.Username}]", Severity.Core, Severity.Verbose);
             }
-            else if(result.Error != CommandError.UnknownCommand)
+            else
             {
                 var embed = new EmbedBuilder();
                 embed.WithAuthor("Command Error", "https://cdn.discordapp.com/emojis/787035973287542854.png?v=1");
@@ -400,29 +340,8 @@ namespace LucaasBot.Services
                 embed.WithColor(Color.Red);
                 await context.Channel.SendMessageAsync("", false, embed.Build());
 
-                Console.ForegroundColor = ConsoleColor.Red;
-                System.Console.WriteLine("Command Error\n------------------------------------");
-                Console.ForegroundColor = ConsoleColor.White;
-                string time = DateTime.Now.ToString("hh:mm:ss tt");
-                System.Console.WriteLine($"Command: [{command.Value.Name}]\nUser: [{context.User.Username}]\nTime: {time}\nError: {result.ErrorReason}");
-                Console.ForegroundColor = ConsoleColor.Red;
-                System.Console.WriteLine("------------------------------------");
-                Console.ForegroundColor = ConsoleColor.White;
+                Logger.Write($"Command Error: {result.Error} - {result.ErrorReason}", Severity.Core, Severity.Warning);
             }
-        }
-
-        public static void ConsoleLog(string action, string user, string details = null)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            System.Console.WriteLine("Action Success\n------------------------------------");
-            Console.ForegroundColor = ConsoleColor.White;
-            string time = DateTime.Now.ToString("hh:mm:ss tt");
-            System.Console.WriteLine($"Action: [{action}]\nUser: [{user}]\nTime: {time}");
-            System.Console.WriteLine($"Details: {details}");
-            Console.ForegroundColor = ConsoleColor.Green;
-            System.Console.WriteLine("------------------------------------");
-            Console.ForegroundColor = ConsoleColor.White;
-            return;
         }
     }
 }

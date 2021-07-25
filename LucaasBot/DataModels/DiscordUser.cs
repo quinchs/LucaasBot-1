@@ -42,7 +42,7 @@ namespace LucaasBot.DataModels
         public List<Modlogs> UserModlogs
             => Modlogs.GetModlogs(this.UserId);
 
-        public Modlogs AddModlog(ulong modid, string reason, string action)
+        public Modlogs AddModlog(ulong modid, string reason, ModlogAction action)
             => UserModlogs.Count >= MaxModlogs ? null : new Modlogs(modid, this, reason, action);
 
         public long DelModlog(ObjectId _id)

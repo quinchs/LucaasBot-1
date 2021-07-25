@@ -8,6 +8,15 @@ using System.Threading.Tasks;
 
 namespace LucaasBot.DataModels
 {
+    public enum ModlogAction
+    {
+        Warn,
+        Kick,
+        Ban,
+        Mute,
+        Unmute
+    }
+
     public class Modlogs
     {
         public ObjectId _id { get; set; }
@@ -19,11 +28,11 @@ namespace LucaasBot.DataModels
         public string Reason { get; set; }
 
         public DateTime DateCreated { get; set; }
-        public string Action { get; set; }
+        public ModlogAction Action { get; set; }
 
         public Modlogs() { } // Just used for mongo.
 
-        public Modlogs(ulong modid, DiscordUser userAccount, string reason, string action)
+        public Modlogs(ulong modid, DiscordUser userAccount, string reason, ModlogAction action)
         {
             this.ModID = modid;
             this.UserID = userAccount.UserId;

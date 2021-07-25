@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -12,9 +13,8 @@ namespace LucaasBot.DataModels
     public class UserMutes
     {
         public ulong UserID { get; set; }
-        public DateTime DateTime { get; set; }
-        public string Type { get; set; }
-        public int Time { get; set; }
+
+        public DateTime UnmuteTime { get; set; }
 
 
         public static UserMutes GetMute(ulong userid)
@@ -31,25 +31,16 @@ namespace LucaasBot.DataModels
             }
         }
 
-        public UserMutes(ulong userid)
+        public UserMutes(ulong userid, DateTime unmuteTime)
         {
             this.UserID = userid;
+            this.UnmuteTime = unmuteTime;
             SaveThis();
         }
 
-        public static UserMutes GetOrCreateMute(ulong userid)
-        {
-            var mute = GetMute(userid);
+        public DeleteResult Delete()
+            => MongoService.MutesCollection.DeleteOne(x => x.UserID == this.UserID);
 
-            if (mute == null)
-            {
-                return new UserMutes(userid);
-            }
-            else
-            {
-                return mute;
-            }
-        }
         public void SaveThis()
         {
             MongoService.MutesCollection.ReplaceOne(x => x.UserID == this.UserID, this, new ReplaceOptions() { IsUpsert = true });

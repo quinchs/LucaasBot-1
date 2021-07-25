@@ -46,6 +46,8 @@ namespace LucaasBot
                 var inst = Activator.CreateInstance(handler);
                 Handlers.Add(inst as DiscordHandler, inst);
             }
+
+            Logger.Write($"Handler service <Green>Initialized</Green>! {Handlers.Count} handlers created!", Severity.Core);
         }
 
         private Task Client_Ready()
