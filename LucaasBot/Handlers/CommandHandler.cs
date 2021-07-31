@@ -393,21 +393,27 @@ namespace LucaasBot.Services
             }
             else if(result.Error != CommandError.UnknownCommand)
             {
-                var embed = new EmbedBuilder();
-                embed.WithAuthor("Command Error", "https://cdn.discordapp.com/emojis/787035973287542854.png?v=1");
-                //embed.WithDescription(result.ErrorReason);
-                embed.WithDescription("There was an error, check logs.");
-                embed.WithColor(Color.Red);
-                await context.Channel.SendMessageAsync("", false, embed.Build());
+                if (result is ExecuteResult executeResult)
+                {
+                    var embed = new EmbedBuilder();
+                    embed.WithAuthor("Command Error", "https://cdn.discordapp.com/emojis/787035973287542854.png?v=1");
+                    if (result.Error.HasValue)
+                    {
+                        embed.WithDescription(executeResult.Exception.Message);
+                    }
+                    //embed.WithDescription("There was an error, check logs.");
+                    embed.WithColor(Color.Red);
+                    await context.Channel.SendMessageAsync("", false, embed.Build());
 
-                Console.ForegroundColor = ConsoleColor.Red;
-                System.Console.WriteLine("Command Error\n------------------------------------");
-                Console.ForegroundColor = ConsoleColor.White;
-                string time = DateTime.Now.ToString("hh:mm:ss tt");
-                System.Console.WriteLine($"Command: [{command.Value.Name}]\nUser: [{context.User.Username}]\nTime: {time}\nError: {result.ErrorReason}");
-                Console.ForegroundColor = ConsoleColor.Red;
-                System.Console.WriteLine("------------------------------------");
-                Console.ForegroundColor = ConsoleColor.White;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    System.Console.WriteLine("Command Error\n------------------------------------");
+                    Console.ForegroundColor = ConsoleColor.White;
+                    string time = DateTime.Now.ToString("hh:mm:ss tt");
+                    System.Console.WriteLine($"Command: [{command.Value.Name}]\nUser: [{context.User.Username}]\nTime: {time}\nError: {result.ErrorReason}");
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    System.Console.WriteLine("------------------------------------");
+                    Console.ForegroundColor = ConsoleColor.White;
+                }           
             }
         }
 

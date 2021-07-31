@@ -21,6 +21,7 @@ namespace LucaasBot
         {
             var client = new DiscordSocketClient(new DiscordSocketConfig()
             {
+                GatewayIntents = GatewayIntents.All,
                 AlwaysAcknowledgeInteractions = false
             });
             _client = client;

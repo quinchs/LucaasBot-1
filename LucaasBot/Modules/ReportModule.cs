@@ -20,7 +20,7 @@ namespace LucaasBot.Modules
         /// <summary>
         ///     The report channel id.
         /// </summary>
-        public readonly ulong ReportChannelId = 123;
+        public readonly ulong ReportChannelId = 867993269097873439;
 
         private DiscordSocketClient client;
         private SocketTextChannel ReportChannel
@@ -56,13 +56,13 @@ namespace LucaasBot.Modules
                 if (evidence != null)
                     embed.AddField("Evidence", evidence);
 
-                if(message != null)
+                if (message != null)
                 {
                     List<IMessage> msgs = new();
 
                     var msgLinks = message.Split(' ');
 
-                    foreach(var msg in msgLinks)
+                    foreach (var msg in msgLinks)
                     {
                         var discordMessage = await GetMessageFromUrl(msg);
 
@@ -79,7 +79,7 @@ namespace LucaasBot.Modules
 
                         if (msg.Attachments.Any())
                         {
-                            foreach(var file in msg.Attachments)
+                            foreach (var file in msg.Attachments)
                             {
                                 var bytes = await new WebClient().DownloadDataTaskAsync(file.ProxyUrl);
 
@@ -96,12 +96,12 @@ namespace LucaasBot.Modules
 
                         string Attachments = "None.";
 
-                        for(int x = 0; x != attachments.Count; x++)
+                        for (int x = 0; x != attachments.Count; x++)
                         {
                             Attachments += $"Attachment {x}: {attachments[x]}\n";
                         }
 
-                        embed.AddField($"Message {i}", 
+                        embed.AddField($"Message {i}",
                             $"**Author**: {msg.Author.Mention} ({msg.Author})\n" +
                             $"**Content**: {msg.Content}\n" +
                             $"**Date**: {TimestampTag.FromDateTime(msg.CreatedAt.UtcDateTime, TimestampTagStyles.Relative)}\n" +
