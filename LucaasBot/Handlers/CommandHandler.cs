@@ -333,6 +333,7 @@ namespace LucaasBot.Services
             ConsoleLog("Automod Mute", user.Username);
         }
 
+
         public async Task MessageReceivedAsync(SocketMessage rawMessage)
         {
             if (!(rawMessage is SocketUserMessage message))
