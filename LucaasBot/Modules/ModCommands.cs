@@ -17,6 +17,25 @@ namespace LucaasBot.Modules
 {
     public class ModCommands : ModuleBase<SocketCommandContext>
     {
+        //[Command("delmsg")]
+        //public async Task DelMsg(ulong id)
+        //{
+        //    var user = Context.User as SocketGuildUser;
+        //    var staffRole = Context.Guild.GetRole(563030072026595339);
+        //    var devRole = Context.Guild.GetRole(639547493767446538);
+
+        //    //if (!user.GuildPermissions.KickMembers)
+        //    if (!user.Roles.Contains(staffRole) && !user.Roles.Contains(devRole))
+        //    {
+        //        await Context.Channel.SendErrorAsync("You do not have access to use this command!");
+        //        return;
+        //    }
+
+        //    var msg = await Context.Channel.GetMessageAsync(id);
+        //    await msg.DeleteAsync();
+        //    await ReplyAsync("Done");
+        //}
+
         [Command("warn")]
         public async Task Warn(SocketGuildUser userAccount = null, [Remainder] string reason = null)
         {

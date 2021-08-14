@@ -181,12 +181,36 @@ namespace LucaasBot.Services
 
             if (rawMessage.MentionedRoles.Count >= 3)
             {
-                await AutomodMute(user.Id, rawMessage.Channel.Id);
+                await AutomodMute(user.Id, rawMessage.Channel.Id, "raid");
             }
 
             if (rawMessage.MentionedUsers.Count >= 5)
             {
-                await AutomodMute(user.Id, rawMessage.Channel.Id);
+                await AutomodMute(user.Id, rawMessage.Channel.Id, "raid");
+            }
+
+            if (rawMessage.Content.Contains("http"))
+            {
+                var lowerCaseRawMessage1 = rawMessage.Content.ToLower();
+                string[] steamLinks = new string[]
+                {
+                    "steem",
+                    "sleam",
+                    "staem",
+                    "comnumnuty",
+                    "tradeofer",
+                    "hello i am leaving cs:go",
+                    "giving away my skins",
+                    "staem",
+                    "comnumnuty",
+                    "tradeofer",
+                };
+
+                if (steamLinks.Any(lowerCaseRawMessage1.Contains))
+                {
+                    await rawMessage.DeleteAsync();
+                    await AutomodMute(rawMessage.Author.Id, rawMessage.Channel.Id, "scam link");
+                }
             }
         }
 
@@ -202,7 +226,7 @@ namespace LucaasBot.Services
                     var userId = item.Key;
                     Task.Run(async () =>
                     {
-                        await AutomodMute(userId, item.Value.channelId).ConfigureAwait(false);
+                        await AutomodMute(userId, item.Value.channelId, "raid").ConfigureAwait(false);
 
                     }).ConfigureAwait(false);
                 }
@@ -278,7 +302,7 @@ namespace LucaasBot.Services
         }
 
 
-        public async Task AutomodMute(ulong userId, ulong channelId)
+        public async Task AutomodMute(ulong userId, ulong channelId, string type)
         {
             var guild = _client.GetGuild(guildId);
             var user = guild.GetUser(userId);
@@ -313,11 +337,11 @@ namespace LucaasBot.Services
                 {
                     x.SlowModeInterval = 3;
                 });
-                embed.WithDescription("AutoModeration detected a potential raid! Slowmode has been set to `3` seconds!");
+                embed.WithDescription($"AutoModeration detected a potential {type}! Slowmode has been set to `3` seconds!");
             }
             catch
             {
-                embed.WithDescription("AutoModeration detected a potential raid! Slowmode was not set!");
+                embed.WithDescription($"AutoModeration detected a potential {type}! Slowmode was not set!");
             }
             await guild.GetTextChannel(channelId).SendMessageAsync("", false, embed.Build());
             //var builder = new ComponentBuilder().WithButton("Unmute User", $"unmute_{userId}", ButtonStyle.Primary).WithButton("Slowmode 0", "cancelSlow", ButtonStyle.Primary);
@@ -326,7 +350,7 @@ namespace LucaasBot.Services
             var modlogschannel = _client.GetGuild(guildId).GetTextChannel(581614769237262357);
             var log = new EmbedBuilder();
             log.WithTitle("AutoModeration Mute");
-            log.WithDescription($"**Offender:** {user.Mention}\n**Reason:** Detected Raid\n**Moderator:** LucaasBot Automoderation\n**In:** {guild.GetTextChannel(channelId).Mention}");
+            log.WithDescription($"**Offender:** {user.Mention}\n**Reason:** Detected {type}\n**Moderator:** LucaasBot Automoderation\n**In:** {guild.GetTextChannel(channelId).Mention}");
             log.WithColor(Color.Red);
             await modlogschannel.SendMessageAsync("", false, log.Build());
 
