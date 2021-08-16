@@ -13,11 +13,11 @@ namespace LucaasBot
 {
     public static class Additions
     {
-        public static async Task<IMessage> SendErrorAsync(this ISocketMessageChannel channel, string description)
+        public static async Task<IMessage> SendErrorAsync(this ISocketMessageChannel channel, string description = null)
         {
             var embed = new EmbedBuilder()
                 .WithAuthor("Command Error", "https://cdn.discordapp.com/emojis/312314733816709120.png?v=1")
-                .WithDescription("There was an error, check logs.")
+                .WithDescription(description ?? "There was an error, check logs.")
                 .WithColor(Color.Red)
                 .Build();
 
