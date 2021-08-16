@@ -5,17 +5,24 @@ using Microsoft.Extensions.DependencyInjection;
 using LucaasBot.Services;
 using System;
 using System.Threading.Tasks;
+using Discord.Rest;
 
 namespace LucaasBot
 {
-    class Program
+    public class Program
     {
-        private DiscordSocketClient _client;
+        public static DiscordSocketClient Client
+            => _client;
+        public static SocketGuild LucaasGuild
+            => _client.GetGuild(464733888447643650);
+
+        private static DiscordSocketClient _client;
 
         static void Main(string[] args)
         {
             ConfigService.LoadConfig();
             new Program().MainAsync().GetAwaiter().GetResult();
+           
         }
 
         public async Task MainAsync()
@@ -39,8 +46,8 @@ namespace LucaasBot
             string gameName = "LucaasBot Beta";
             await _client.SetGameAsync(gameName);
             await _client.SetStatusAsync(UserStatus.Online);
-
-            var handler = new CommandHandler(commandServeice, client);
+            var handlerService = new HandlerService(_client);
+            var commandHandler = new CommandHandler(commandServeice, client);
 
 
             await Task.Delay(-1);

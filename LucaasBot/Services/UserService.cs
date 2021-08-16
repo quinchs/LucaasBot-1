@@ -36,5 +36,8 @@ namespace LucaasBot
 
             return user != null;
         }
+
+        public static Task<IGuildUser> GetLucaasUser(ulong id)
+            => FindUserAsync(Program.LucaasGuild, id);
     }
 }

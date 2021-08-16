@@ -18,7 +18,9 @@ namespace LucaasBot
         Rest,
         Critical,
         Core,
-        Verbose
+        Verbose,
+        Http,
+        Websocket
     }
     public class Logger
     {
@@ -45,8 +47,12 @@ namespace LucaasBot
             }
         }
 
-        
-        
+        public static string BuildColoredString(object s, ConsoleColor color)
+            => BuildColoredString(s.ToString(), color);
+        public static string BuildColoredString(string s, ConsoleColor color)
+        {
+            return $"<{color}>{s}</{color}>";
+        }
 
         static bool inProg = false;
         private static Regex ColorRegex = new Regex(@"<(.*)>(.*?)<\/\1>");
@@ -122,6 +128,8 @@ namespace LucaasBot
             { Severity.Socket, ConsoleColor.Blue },
             { Severity.Rest, ConsoleColor.Magenta },
             { Severity.Verbose, ConsoleColor.DarkCyan },
+            { Severity.Http, ConsoleColor.DarkYellow },
+            { Severity.Websocket, ConsoleColor.Cyan },
         };
 
         private static void HandleQueueWrite()
@@ -142,11 +150,9 @@ namespace LucaasBot
                             enumsWithColors += $" -> <{(int)SeverityColorParser[item]}>{item}</{(int)SeverityColorParser[item]}>";
                     }
 
-                    var items = ProcessColors($"<Gray>{DateTime.UtcNow.ToString("O")}</Gray> " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - {data}");
+                    var items = ProcessColors($"<DarkGray>{DateTime.UtcNow.ToString("O")}</DarkGray> " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - {data}");
 
                     string msg = "";
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.Write($"{DateTime.UtcNow.ToString("O")} - ");
 
                     foreach (var item in items)
                     {

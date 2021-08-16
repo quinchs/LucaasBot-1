@@ -7,6 +7,7 @@ using System.Linq;
 using MongoDB.Driver;
 using MongoDB.Bson;
 using LucaasBot.DataModels;
+using LucaasBot.HTTP;
 
 namespace LucaasBot
 {
@@ -25,5 +26,11 @@ namespace LucaasBot
             => Database.GetCollection<UserMutes>("mute-times");
         public static IMongoCollection<Censor> CensoredCollection
             => Database.GetCollection<Censor>("censors");
+        public static IMongoCollection<WebUser> WebUsers
+            => Database.GetCollection<WebUser>("web-users");
+        public static IMongoCollection<ulong> BlockedTicketUsers
+            => Database.GetCollection<ulong>("blocked-ticket-users");
+        public static IMongoCollection<TicketSnippet> Snippets
+            => Database.GetCollection<TicketSnippet>("snippets");
     }
 }

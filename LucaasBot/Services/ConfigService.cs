@@ -27,6 +27,30 @@ namespace LucaasBot
         ///     The Hapsy file host token.
         /// </summary>
         public string HapsyToken { get; set; }
+
+        /// <summary>
+        ///     The OAuth settings to use with the dashboard signin.
+        /// </summary>
+        public OAuthSettings OAuth { get; set; }
+
+        /// <summary>
+        ///     The ratelimits for the website related stuff
+        /// </summary>
+        public List<RatelimitInfo> Ratelimits { get; set; } = new();
+    }
+
+    public class OAuthSettings
+    {
+        public string ClientSecret { get; set; }
+        public string RedirectUri { get; set; }
+        public string Scope { get; set; }
+    }
+
+    public class RatelimitInfo
+    {
+        public string Page { get; set; }
+        public double Duration { get; set; }
+        public int Limit { get; set; }
     }
 
     /// <summary>
