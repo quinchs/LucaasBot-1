@@ -99,7 +99,9 @@ namespace LucaasBot.Handlers
                     }
                 }.Build());
 
-                await msg.ModifyAsync(async x => x.Embed = await GenerateGraphEmbed());
+                var em = await GenerateGraphEmbed();
+
+                await msg.ModifyAsync(x => x.Embed = em);
             }
             catch (Exception x)
             {
