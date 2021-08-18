@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using LucaasBot.HTTP.Websocket.Packets;
+using Newtonsoft.Json.Linq;
 using SimpleSecureWebsockets.API.Packets;
 using System;
 using System.Collections.Generic;
@@ -6,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SimpleSecureWebsockets
+namespace LucaasBot.HTTP.Websocket.Resolvers
 {
     public sealed class PayloadResolver
     {

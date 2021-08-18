@@ -23,14 +23,14 @@ namespace LucaasBot.HTTP.Websocket
         {
             switch (user.Permission)
             {
-                case HTTP.Types.SessionPermission.Staff:
+                case SessionPermission.Staff:
                     foreach (var item in events)
                     {
                         if (!staffEvents.Contains(item))
                             return false;
                     }
                     return true;
-                case HTTP.Types.SessionPermission.None:
+                case SessionPermission.None:
                     return false;
             }
             return false;

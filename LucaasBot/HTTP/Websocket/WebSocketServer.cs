@@ -11,6 +11,7 @@ using System.Net;
 using LucaasBot.HTTP.Websocket.Entities;
 using System.Collections.Immutable;
 using LucaasBot.HTTP.Websocket.Packets;
+using LucaasBot.HTTP.Websocket.Resolvers;
 
 namespace LucaasBot.HTTP.Websocket
 {
@@ -125,10 +126,9 @@ namespace LucaasBot.HTTP.Websocket
 
             if (user != null)
             {
-                user.ResumeAsync(handshake, socket);
+                user.Resume(handshake, socket);
                 await user.SendAsync(new SocketFrame(OpCodes.HandshakeResult, new HandshakeResult(true)), CancellationToken.None);
                 ClientResumed.DispatchEvent(user);
-
             }
             else
             {

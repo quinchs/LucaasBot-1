@@ -8,6 +8,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using LucaasBot.HTTP.Websocket.Resolvers;
 
 namespace LucaasBot.HTTP.Websocket.Entities
 {
@@ -76,7 +77,7 @@ namespace LucaasBot.HTTP.Websocket.Entities
             _ = Task.Run(async () => await ReceiveAsync());
         }
 
-        internal void ResumeAsync(Handshake handshake, WebSocket socket)
+        internal void Resume(Handshake handshake, WebSocket socket)
         {
             this.socket = socket;
             this._events = new List<string>(handshake.Events);

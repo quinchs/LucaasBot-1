@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SimpleSecureWebsockets.API.Packets
+namespace LucaasBot.HTTP.Websocket.Packets
 {
     internal class HandshakeResult : IPacket
     {

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace LucaasBot.HTTP.Routes
 {
     /// <summary>
-    /// This class will handle all the http requests from discord that corilate to discord OAuth2
+    ///     This class will handle all the http requests from discord that corilate to discord OAuth2
     /// </summary>
     public class DiscordCallback
     {

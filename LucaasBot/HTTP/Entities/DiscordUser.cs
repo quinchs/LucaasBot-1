@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using LucaasBot.Handlers;
-using LucaasBot.HTTP.Types;
 using System;
 using System.Collections.Generic;
 using System.Drawing.Text;

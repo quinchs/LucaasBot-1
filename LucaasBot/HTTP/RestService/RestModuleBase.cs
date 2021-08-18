@@ -1,4 +1,5 @@
-﻿using LucaasBot.HTTP.RestService.Info;
+﻿using LucaasBot.Http.RestService.Info;
+using LucaasBot.HTTP.RestService.Info;
 using LucaasBot.HTTP.Websocket;
 using System;
 using System.Collections.Generic;
