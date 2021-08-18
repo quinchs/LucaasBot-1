@@ -135,7 +135,7 @@ namespace LucaasBot.Handlers
             ChartGraphics.DrawLine(WhitePen, new PointF(30f, ChartImage.Height - 60f), new PointF(ChartImage.Width - 80f, ChartImage.Height - 60f));
 
             ChartGraphics.DrawString("Time (Hours)", TitleFont, new SolidBrush(Color.White), ChartImage.Width / 2, ChartImage.Height - 30, new StringFormat() { Alignment = StringAlignment.Center });
-            ChartGraphics.DrawString($"Discord Ping (Past 24 Hours) Generated on {DateTime.UtcNow.ToString("f")} UTC", TitleFont, new SolidBrush(Color.White), ChartImage.Width / 2, 20, new StringFormat() { Alignment = StringAlignment.Center });
+            ChartGraphics.DrawString($"Generated on {DateTime.UtcNow:O} UTC", TitleFont, new SolidBrush(Color.White), ChartImage.Width / 2, 20, new StringFormat() { Alignment = StringAlignment.Center });
 
             var chtr = yMax / 10;
             var chtr2 = yMax / 20;

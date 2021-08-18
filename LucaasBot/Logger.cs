@@ -143,7 +143,7 @@ namespace LucaasBot
                             enumsWithColors += $" -> <{(int)SeverityColorParser[item]}>{item}</{(int)SeverityColorParser[item]}>";
                     }
 
-                    var items = ProcessColors($"<249>{DateTime.UtcNow.ToString("O")}</249> " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - \u001b[37;1m{data}");
+                    var items = ProcessColors($"\u001b[38;5;249m{DateTime.UtcNow.ToString("O")} " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - \u001b[37;1m{data}");
 
                     string msg = "";
                     
