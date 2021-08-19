@@ -326,12 +326,12 @@ namespace LucaasBot.Services
                 return;
             }
 
-            // log success to the console and exit this method
-            if (result.IsSuccess)
-            {
-                Logger.Write($"Command: [{command.Value.Name}] User: [{context.User.Username}]", Severity.Core, Severity.Verbose);
-            }
-            else
+            Logger.Write($"Command: [{command.Value.Name}] User: [{context.User.Username}] Result: [{(result.IsSuccess ? "Success" : $"{result.Error}: {result.ErrorReason}")}]", Severity.Core, Severity.Verbose);
+
+            if(result.Error != null && 
+                result.Error != CommandError.BadArgCount && 
+                result.Error != CommandError.UnknownCommand && 
+                result.Error != CommandError.UnmetPrecondition)
             {
                 var embed = new EmbedBuilder();
                 embed.WithAuthor("Command Error", "https://cdn.discordapp.com/emojis/787035973287542854.png?v=1");
