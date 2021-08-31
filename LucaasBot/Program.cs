@@ -41,7 +41,8 @@ namespace LucaasBot
             await _client.SetGameAsync(gameName);
             await _client.SetStatusAsync(UserStatus.Online);
 
-            var handler = new CommandHandler(commandServeice, client);
+            var handlerService = new HandlerService(_client);
+            var commandHandler = new CommandHandler(commandServeice, client);
 
 
             await Task.Delay(-1);

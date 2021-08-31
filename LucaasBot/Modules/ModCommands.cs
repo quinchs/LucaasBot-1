@@ -325,7 +325,7 @@ namespace LucaasBotBeta.Modules
             await ReplyAsync(embed: embed, messageReference: Context.Message.GetReference());
         }
 
-        [Command("move")]
+        //[Command("move")]
         public async Task MoveUserVoice(SocketGuildUser userAccount = null, SocketVoiceChannel channel = null)
         {
             if(Context.User is not SocketGuildUser user)

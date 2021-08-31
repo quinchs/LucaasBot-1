@@ -105,10 +105,11 @@ namespace LucaasBot
             {
                 return (ConsoleColor)res;
             }
-            else
+            else if (int.TryParse(tag, out var r))
             {
-                return null;
+                return (ConsoleColor)r;
             }
+            else return null;
         }
 
         private static Dictionary<Severity, ConsoleColor> SeverityColorParser = new Dictionary<Severity, ConsoleColor>()
@@ -142,16 +143,18 @@ namespace LucaasBot
                             enumsWithColors += $" -> <{(int)SeverityColorParser[item]}>{item}</{(int)SeverityColorParser[item]}>";
                     }
 
-                    var items = ProcessColors($"<Gray>{DateTime.UtcNow.ToString("O")}</Gray> " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - {data}");
+                    var items = ProcessColors($"\u001b[38;5;249m{DateTime.UtcNow.ToString("O")} " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - \u001b[37;1m{data}");
 
                     string msg = "";
-                    Console.ForegroundColor = ConsoleColor.Gray;
-                    Console.Write($"{DateTime.UtcNow.ToString("O")} - ");
-
+                    
                     foreach (var item in items)
                     {
+#if DEBUG
                         Console.ForegroundColor = item.color;
                         Console.Write(item.value);
+#else
+                        Console.Write($"{ConsoleColorToANSI(item.color)}{item.value}\u001b[0m");
+#endif
                         msg += item.value;
                     }
 
@@ -160,6 +163,52 @@ namespace LucaasBot
                 }
             }
             inProg = false;
+        }
+
+        private static string ConsoleColorToANSI(ConsoleColor color)
+        {
+            int ansiConverter(ConsoleColor c) 
+            {
+                switch (c)
+                {
+                    case ConsoleColor.Black:
+                        return 0;
+                    case ConsoleColor.DarkRed:
+                        return 1;
+                    case ConsoleColor.DarkGreen:
+                        return 2;
+                    case ConsoleColor.DarkYellow:
+                        return 3;
+                    case ConsoleColor.DarkBlue:
+                        return 4;
+                    case ConsoleColor.DarkMagenta:
+                        return 5;
+                    case ConsoleColor.DarkCyan:
+                        return 6;
+                    case ConsoleColor.Gray:
+                        return 7;
+                    case ConsoleColor.DarkGray:
+                        return 8;
+                    case ConsoleColor.Red:
+                        return 9;
+                    case ConsoleColor.Green:
+                        return 10;
+                    case ConsoleColor.Yellow:
+                        return 11;
+                    case ConsoleColor.Blue:
+                        return 12;
+                    case ConsoleColor.Magenta:
+                        return 13;
+                    case ConsoleColor.Cyan:
+                        return 14;
+                    case ConsoleColor.White:
+                        return 15;
+                    default:
+                        return (int)c;
+                }
+            }
+
+            return $"\u001b[38;5;{ansiConverter(color)}m";
         }
     }
 }

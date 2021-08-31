@@ -14,6 +14,12 @@ namespace LucaasBot.Modules
 {
     public class GeneralCommands : ModuleBase<SocketCommandContext>
     {
+        [Command("married")]
+        public async Task married() 
+        {
+            await ReplyAsync("Congrats to <@259053800755691520> and <@790546298306166794> for getting married", messageReference: Context.Message.GetReference(), allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
+        }
+
         [Command("terminate")]
         public async Task TerminateClient()
         {
