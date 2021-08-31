@@ -137,6 +137,7 @@ namespace LucaasBot.Handlers
 
                 case ModlogAction.Mute:
                     var _ = new UserMutes(target.Id, DateTime.UtcNow.Add(muteDir.GetValueOrDefault()));
+                    await target.AddRoleAsync(465097693379690497);
                     break;
 
                 case ModlogAction.Unmute:
