@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using LucaasBot.Services;
 using System;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace LucaasBot
 {
@@ -24,13 +25,16 @@ namespace LucaasBot
 
             var client = new DiscordSocketClient(new DiscordSocketConfig()
             {
-                AlwaysAcknowledgeInteractions = false
+                AlwaysAcknowledgeInteractions = false,
+                LogLevel = LogSeverity.Debug,
+                GatewayIntents = (GatewayIntents)(GatewayIntents.All - GatewayIntents.GuildPresences)
             });
             _client = client;
 
             client.Log += LogAsync;
             client.Ready += ReadyAsync;
             var commandServeice = new CommandService();
+            commandServeice.Log += LogAsync;
             UserService.Initialize(client);
             commandServeice.Log += LogAsync;
 
@@ -47,7 +51,6 @@ namespace LucaasBot
 
             await Task.Delay(-1);
         }
-    
 
         private Task LogAsync(LogMessage log)
         {
