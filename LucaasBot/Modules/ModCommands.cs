@@ -344,5 +344,18 @@ namespace LucaasBotBeta.Modules
                 x.Channel = channel;
             });
         }
+
+
+        [Command("testing")]
+        public async Task testing()
+        {
+            var users = Context.Guild.Users;
+            var partnered = users.Where(x => x.PublicFlags.HasValue && ((ulong)x.PublicFlags.Value & (ulong)UserProperties.Partner) != 0).ToList();
+
+            foreach (var user in partnered)
+            {
+                await ReplyAsync(user.Mention);
+            }
+        }
     }
 }
