@@ -28,6 +28,7 @@ namespace LucaasBot.Services
         public CommandHandler(CommandService service, DiscordSocketClient client)
         {
             _commands = service;
+            _commands.AddTypeReader(typeof(IGuildUser), TypeReader.UserTypeReader.Instance);
             _client = client;
 
             _commands.CommandExecuted += CommandExecutedAsync;

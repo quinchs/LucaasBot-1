@@ -31,6 +31,7 @@ namespace LucaasBot
             client.Log += LogAsync;
             client.Ready += ReadyAsync;
             var commandServeice = new CommandService();
+            UserService.Initialize(client);
             commandServeice.Log += LogAsync;
 
             await client.LoginAsync(TokenType.Bot, ConfigService.Config.Token);

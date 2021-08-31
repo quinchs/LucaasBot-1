@@ -13,6 +13,15 @@ namespace LucaasBot
 {
     public static class Additions
     {
+        public static int GetHiearchy(this IGuildUser user)
+        {
+            if (user.Guild.OwnerId == user.Id)
+                return int.MaxValue;
+
+            var orderedRoles = user.Guild.Roles.OrderByDescending(x => x.Position);
+            return orderedRoles.Where(x => user.RoleIds.Contains(x.Id)).Max(x => x.Position);
+        }
+
         public static async Task<IMessage> SendErrorAsync(this ISocketMessageChannel channel, string description = null)
         {
             var embed = new EmbedBuilder()
@@ -37,7 +46,7 @@ namespace LucaasBot
             return await channel.SendMessageAsync(embed: embed.Build());
         }
 
-        public static async Task<IMessage> SendInfractionAsync(this ISocketMessageChannel channel, SocketGuildUser userAccount, SocketGuildUser moderator, Modlogs log, bool gotDM)
+        public static async Task<IMessage> SendInfractionAsync(this ISocketMessageChannel channel, IGuildUser userAccount, IGuildUser moderator, Modlogs log, bool gotDM)
         {
             var embed = new EmbedBuilder()
                 .WithAuthor($"{userAccount} was {log.Action.Format()}", "https://cdn.discordapp.com/emojis/312314752711786497.png?v=1")
@@ -49,7 +58,7 @@ namespace LucaasBot
             return await channel.SendMessageAsync(embed: embed);
         }
 
-        public static async Task<IMessage> ModlogAsync(this ISocketMessageChannel channel, SocketGuildUser target, SocketGuildUser mod, Modlogs log, ISocketMessageChannel targetChannel, bool gotDM)
+        public static async Task<IMessage> ModlogAsync(this ISocketMessageChannel channel, IGuildUser target, IGuildUser mod, Modlogs log, ISocketMessageChannel targetChannel, bool gotDM)
         {
             var embed = new EmbedBuilder()
                 .WithTitle($"{log.Action.Format()}")

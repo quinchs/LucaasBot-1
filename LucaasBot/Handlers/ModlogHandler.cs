@@ -60,14 +60,14 @@ namespace LucaasBot.Handlers
             }
         }
 
-        public void HandleModCommand(SocketCommandContext context, ModlogAction action, SocketGuildUser target, string reason, TimeSpan? muteDir = null)
+        public void HandleModCommand(SocketCommandContext context, ModlogAction action, IGuildUser target, string reason, TimeSpan? muteDir = null)
         {
             _ = Task.Run(async () => await HandleModCommandAsync(context, action, target, reason, muteDir));
         }
 
 
 
-        private async Task HandleModCommandAsync(SocketCommandContext context, ModlogAction action, SocketGuildUser target, string reason, TimeSpan? muteDir = null)
+        private async Task HandleModCommandAsync(SocketCommandContext context, ModlogAction action, IGuildUser target, string reason, TimeSpan? muteDir = null)
         {
             if (context.User is not SocketGuildUser user)
             {
@@ -86,7 +86,7 @@ namespace LucaasBot.Handlers
                 return;
             }
 
-            if (user.Hierarchy <= target.Hierarchy)
+            if (user.Hierarchy <= target.GetHiearchy())
             {
                 await context.Channel.SendErrorAsync("You cannot ban this user!");
                 return;

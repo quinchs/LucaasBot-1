@@ -23,12 +23,12 @@ namespace LucaasBotBeta.Modules
             => HandlerService.GetHandlerInstance<ModlogHandler>();
 
         [Command("warn")]
-        public async Task Warn(SocketGuildUser userAccount = null, [Remainder] string reason = null)
+        public async Task Warn(IGuildUser userAccount = null, [Remainder] string reason = null)
             => ModlogHandler.HandleModCommand(Context, ModlogAction.Warn, userAccount, reason);
 
         [Command("mute")]
         [Alias("m")]
-        public async Task Mute(SocketGuildUser userAccount = null, string time = null, [Remainder] string reason = null)
+        public async Task Mute(IGuildUser userAccount = null, string time = null, [Remainder] string reason = null)
         {
             var timespan = time.ToTimespan();
 
@@ -43,21 +43,21 @@ namespace LucaasBotBeta.Modules
 
         [Command("unmute")]
         [Alias("um")]
-        public async Task Unmute(SocketGuildUser userAccount = null, [Remainder] string reason = "Normal unmute")
+        public async Task Unmute(IGuildUser userAccount = null, [Remainder] string reason = "Normal unmute")
             => ModlogHandler.HandleModCommand(Context, ModlogAction.Unmute, userAccount, reason);
 
         [Command("kick")]
         [Alias("k")]
-        public async Task Kick(SocketGuildUser userAccount = null, [Remainder] string reason = null)
+        public async Task Kick(IGuildUser userAccount = null, [Remainder] string reason = null)
             => ModlogHandler.HandleModCommand(Context, ModlogAction.Kick, userAccount, reason);
 
         [Command("ban")]
         [Alias("b")]
-        public async Task Ban(SocketGuildUser userAccount = null, [Remainder] string reason = null)
+        public async Task Ban(IGuildUser userAccount = null, [Remainder] string reason = null)
             => ModlogHandler.HandleModCommand(Context, ModlogAction.Ban, userAccount, reason);
 
         [Command("modlogs")]
-        public async Task Modlogs(SocketGuildUser userAccount = null)
+        public async Task Modlogs(IGuildUser userAccount = null)
         {
             if (Context.User is not SocketGuildUser user)
             {
@@ -114,7 +114,7 @@ namespace LucaasBotBeta.Modules
         }
 
         [Command("clearlogs")]
-        public async Task Clearlogs(SocketGuildUser userAccount = null, uint logNum = 0)
+        public async Task Clearlogs(IGuildUser userAccount = null, uint logNum = 0)
         {
             if(Context.User is not SocketGuildUser user)
             {
@@ -234,7 +234,7 @@ namespace LucaasBotBeta.Modules
 
 
         [Command("modstats")]
-        public async Task ModStats(SocketGuildUser userAccount = null)
+        public async Task ModStats(IGuildUser userAccount = null)
         {
             if(Context.User is not SocketGuildUser guildUser)
             {
