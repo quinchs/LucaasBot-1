@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using LucaasBot.Services;
 using System;
 using System.Threading.Tasks;
+
 namespace LucaasBot
 {
     class Program
@@ -19,6 +20,8 @@ namespace LucaasBot
 
         public async Task MainAsync()
         {
+            Logger.Write("Starting discord client...", Severity.Core);
+
             var client = new DiscordSocketClient(new DiscordSocketConfig()
             {
                 GatewayIntents = GatewayIntents.All,
@@ -39,21 +42,23 @@ namespace LucaasBot
             await _client.SetStatusAsync(UserStatus.Online);
 
             var handler = new CommandHandler(commandServeice, client);
-            var handlerService = new HandlerService(client);
+
 
             await Task.Delay(-1);
         }
+    
 
         private Task LogAsync(LogMessage log)
         {
-            Console.WriteLine(log.ToString());
+            Logger.Write($"{log.Message} {log.Exception}", log.Severity.ToLogSeverity());
+
             return Task.CompletedTask;
         }
 
         private Task ReadyAsync()
         {
-            Console.WriteLine($"Connected as -> {Environment.UserName} :)");
-            Console.WriteLine("[" + DateTime.Now.TimeOfDay + "] - " + $"Welcome User!");//"Welcome, " + Environment.UserName + ".");
+            Logger.Write($"Connected as -> <Green>{Environment.UserName}</Green> :)", Severity.Log);
+
             return Task.CompletedTask;
         }
     }

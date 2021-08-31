@@ -39,84 +39,80 @@ namespace LucaasBot.Modules
         {
             if (arg is SocketSlashCommand command && command.Data.Name == "report")
             {
-                await command.AcknowledgeAsync();
+                await command.RespondAsync(embed: null, type: InteractionResponseType.DeferredChannelMessageWithSource, ephemeral: true);
 
-                var guildUser = (SocketGuildUser)command.Data.Options.FirstOrDefault(x => x.Name == "user").Value;
-                var description = (string)command.Data.Options.FirstOrDefault(x => x.Name == "description").Value;
-                var evidence = (string)command.Data.Options.FirstOrDefault(x => x.Name == "evidence").Value;
-                var message = (string)command.Data.Options.FirstOrDefault(x => x.Name == "message").Value;
-
-                var embed = new EmbedBuilder()
-                    .WithAuthor(command.User)
-                    .WithTitle("New user report")
-                    .WithDescription($"{arg.User} has reported {guildUser}")
-                    .WithCurrentTimestamp()
-                    .AddField("Description", description);
-
-                if (evidence != null)
-                    embed.AddField("Evidence", evidence);
-
-                if (message != null)
+                _ = Task.Run(async () =>
                 {
-                    List<IMessage> msgs = new();
+                    var guildUser = (SocketGuildUser)command.Data.Options.FirstOrDefault(x => x.Name == "user").Value;
+                    var description = (string)command.Data.Options.FirstOrDefault(x => x.Name == "description").Value;
+                    var evidence = (string)command.Data.Options.FirstOrDefault(x => x.Name == "evidence").Value;
+                    var message = (string)command.Data.Options.FirstOrDefault(x => x.Name == "message").Value;
 
-                    var msgLinks = message.Split(' ');
+                    var embed = new EmbedBuilder()
+                        .WithAuthor(command.User)
+                        .WithTitle("New user report")
+                        .WithDescription($"{arg.User} has reported {guildUser}")
+                        .WithCurrentTimestamp()
+                        .AddField("Description", description);
 
-                    foreach (var msg in msgLinks)
+                    if (evidence != null)
+                        embed.AddField("Evidence", evidence);
+
+                    if (message != null)
                     {
-                        var discordMessage = await GetMessageFromUrl(msg);
+                        List<IMessage> msgs = new();
 
-                        if (discordMessage != null)
-                            msgs.Add(discordMessage);
-                    }
+                        var msgLinks = message.Split(' ');
 
-                    var restClient = new RestClient("https://upload.hapsy.net/upload");
-
-                    for (int i = 0; i != msgs.Count; i++)
-                    {
-                        var msg = msgs[i];
-                        List<string> attachments = new();
-
-                        if (msg.Attachments.Any())
+                        foreach (var msg in msgLinks)
                         {
-                            foreach (var file in msg.Attachments)
+                            var discordMessage = await GetMessageFromUrl(msg);
+
+                            if (discordMessage != null)
+                                msgs.Add(discordMessage);
+                        }
+
+                        for (int i = 0; i != msgs.Count; i++)
+                        {
+                            var msg = msgs[i];
+                            List<string> attachments = new();
+
+                            if (msg.Attachments.Any())
                             {
-                                var bytes = await new WebClient().DownloadDataTaskAsync(file.ProxyUrl);
+                                foreach (var file in msg.Attachments)
+                                {
+                                    var bytes = await new WebClient().DownloadDataTaskAsync(file.ProxyUrl);
 
-                                var req = new RestRequest(Method.POST);
-                                req.AddHeader("Authorization", ConfigService.Config.HapsyToken);
-                                req.AddFile("file", bytes, "attachment");
+                                    var url = await HapsyService.GetImageLink(bytes, file.Filename);
 
-                                IRestResponse resp = await restClient.ExecuteAsync(req);
-
-                                var url = JsonConvert.DeserializeObject<dynamic>(resp.Content).files[0].url;
-                                attachments.Add(url);
+                                    attachments.Add(url);
+                                }
                             }
+
+                            string Attachments = "None.";
+
+                            for (int x = 0; x != attachments.Count; x++)
+                            {
+                                Attachments += $"Attachment {x}: {attachments[x]}\n";
+                            }
+
+                            embed.AddField($"Message {i}",
+                                $"**Author**: {msg.Author.Mention} ({msg.Author})\n" +
+                                $"**Content**: {msg.Content}\n" +
+                                $"**Date**: {TimestampTag.FromDateTime(msg.CreatedAt.UtcDateTime, TimestampTagStyles.Relative)}\n" +
+                                $"**Attachments**: {Attachments}"
+                            );
                         }
-
-                        string Attachments = "None.";
-
-                        for (int x = 0; x != attachments.Count; x++)
-                        {
-                            Attachments += $"Attachment {x}: {attachments[x]}\n";
-                        }
-
-                        embed.AddField($"Message {i}",
-                            $"**Author**: {msg.Author.Mention} ({msg.Author})\n" +
-                            $"**Content**: {msg.Content}\n" +
-                            $"**Date**: {TimestampTag.FromDateTime(msg.CreatedAt.UtcDateTime, TimestampTagStyles.Relative)}\n" +
-                            $"**Attachments**: {Attachments}"
-                        );
                     }
-                }
 
-                await ReportChannel.SendMessageAsync(embed: embed.Build());
+                    await ReportChannel.SendMessageAsync(embed: embed.Build());
 
-                await command.RespondAsync(embed: new EmbedBuilder()
-                    .WithAuthor("Success!", "https://cdn.discordapp.com/emojis/312314752711786497.png?v=1")
-                    .WithDescription("Your report has been filed! You may be contacted by staff for further questions about your report.")
-                    .WithColor(Color.Green)
-                .WithCurrentTimestamp().Build(), ephemeral: true);
+                    await command.FollowupAsync(embed: new EmbedBuilder()
+                        .WithAuthor("Success!", "https://cdn.discordapp.com/emojis/312314752711786497.png?v=1")
+                        .WithDescription("Your report has been filed! You may be contacted by staff for further questions about your report.")
+                        .WithColor(Color.Green)
+                    .WithCurrentTimestamp().Build(), ephemeral: true);
+                });
             }
         }
 
