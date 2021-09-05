@@ -75,6 +75,11 @@ namespace LucaasBotBeta.Modules
         public async Task Ban(IGuildUser userAccount = null, [Remainder] string reason = null)
             => ModlogHandler.HandleModCommand(Context, ModlogAction.Ban, userAccount, reason);
 
+        [Command("aban")]
+        [Alias("ab")]
+        public async Task AppealBan(IGuildUser userAccount = null, [Remainder] string reason = null)
+            => ModlogHandler.HandleModCommand(Context, ModlogAction.Ban, userAccount, reason);
+
         [Command("modlogs")]
         public async Task Modlogs(IGuildUser userAccount = null)
         {
@@ -255,7 +260,7 @@ namespace LucaasBotBeta.Modules
         [Command("modstats")]
         public async Task ModStats(IGuildUser userAccount = null)
         {
-            if(Context.User is not SocketGuildUser guildUser)
+            if (Context.User is not SocketGuildUser guildUser)
             {
                 return;
             }
@@ -356,6 +361,13 @@ namespace LucaasBotBeta.Modules
             {
                 await ReplyAsync(user.Mention);
             }
+        }
+
+        [Command("lock")]
+        public async Task LockChannel(SocketTextChannel channel = null)
+        {
+            var user = Context.User as SocketGuildUser;
+
         }
     }
 }
