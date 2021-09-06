@@ -24,7 +24,7 @@ namespace LucaasBot.Services
         public ulong guildId = 464733888447643650;
         public Timer a = new Timer();
         public static int autoModMessageCounter = 5;
-        public Timer johnPing = new Timer();
+        //public Timer johnPing = new Timer();
 
         public CommandHandler(CommandService service, DiscordSocketClient client)
         {
@@ -47,9 +47,9 @@ namespace LucaasBot.Services
             a.Start();
             a.Elapsed += AutoModTimer;
 
-            johnPing.Interval = 28800000;
-            johnPing.Start();
-            johnPing.Elapsed += JohnPing;
+            //johnPing.Interval = 28800000;
+            //johnPing.Start();
+            //johnPing.Elapsed += JohnPing;
 
             _commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
@@ -211,6 +211,23 @@ namespace LucaasBot.Services
                     await AutomodMute(rawMessage.Author.Id, rawMessage.Channel.Id, "scam link");
                 }
             }
+
+            var censorList = Censor.GetCensors(guildId);
+
+            var guildUser = (SocketGuildUser)rawMessage.Author;
+
+            if (guildUser.IsStaff())
+            {
+                return;
+            }
+
+            foreach (var doc in censorList)
+            {
+                if (rawMessage.ToString().ToLower().Contains(doc.CensorText.ToLower()))
+                {
+                    await rawMessage.DeleteAsync();
+                }
+            }
         }
 
         public void AutoModTimer(object s, EventArgs a)
@@ -246,11 +263,11 @@ namespace LucaasBot.Services
             }
         }
 
-        public async void JohnPing(object s, EventArgs a)
-        {
-            var channel = _client.GetGuild(guildId).GetTextChannel(465083688795766785);
-            await channel.SendMessageAsync("<@561464966427705374> ");
-        }
+        //public async void JohnPing(object s, EventArgs a)
+        //{
+        //    var channel = _client.GetGuild(guildId).GetTextChannel(465083688795766785);
+        //    await channel.SendMessageAsync("<@561464966427705374> ");
+        //}
 
 
         public async Task AutomodMute(ulong userId, ulong channelId, string type)

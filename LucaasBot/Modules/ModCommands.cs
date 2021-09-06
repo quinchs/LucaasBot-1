@@ -140,7 +140,7 @@ namespace LucaasBotBeta.Modules
         [Command("clearlogs")]
         public async Task Clearlogs(IGuildUser userAccount = null, uint logNum = 0)
         {
-            if(Context.User is not SocketGuildUser user)
+            if (Context.User is not SocketGuildUser user)
             {
                 return;
             }
@@ -171,7 +171,7 @@ namespace LucaasBotBeta.Modules
 
             if (orderedModlogs.Any())
             {
-                if(orderedModlogs.Length >= logNum)
+                if (orderedModlogs.Length >= logNum)
                 {
                     var modlogs = orderedModlogs[logNum - 1];
                     discordUser.DelModlog(modlogs._id);
@@ -195,7 +195,7 @@ namespace LucaasBotBeta.Modules
         [Alias("s")]
         public async Task Slowmode(int value = 999)
         {
-            if(Context.User is not SocketGuildUser user)
+            if (Context.User is not SocketGuildUser user)
             {
                 return;
             }
@@ -226,7 +226,7 @@ namespace LucaasBotBeta.Modules
         [Command("modlevel"), Alias("verification", "verificationlevel", "vl")]
         public async Task ChangeModLevel(string level = null)
         {
-            if(Context.User is not SocketGuildUser user)
+            if (Context.User is not SocketGuildUser user)
             {
                 return;
             }
@@ -246,7 +246,7 @@ namespace LucaasBotBeta.Modules
             // uppercases the first letter.
             level = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(level.ToLower());
 
-            if(!Enum.TryParse(level, out VerificationLevel result))
+            if (!Enum.TryParse(level, out VerificationLevel result))
             {
                 await Context.Channel.SendErrorAsync($"Unknown verification level \"{level}\"! the possible options are:\n```\n{string.Join("\n", Enum.GetNames(typeof(VerificationLevel)))}```");
                 return;
@@ -255,7 +255,6 @@ namespace LucaasBotBeta.Modules
             await Context.Guild.ModifyAsync(x => x.VerificationLevel = result);
             await Context.Channel.SendSuccessAsync($"Changed verification level to `{result}`!");
         }
-
 
         [Command("modstats")]
         public async Task ModStats(IGuildUser userAccount = null)
@@ -333,7 +332,7 @@ namespace LucaasBotBeta.Modules
         //[Command("move")]
         public async Task MoveUserVoice(SocketGuildUser userAccount = null, SocketVoiceChannel channel = null)
         {
-            if(Context.User is not SocketGuildUser user)
+            if (Context.User is not SocketGuildUser user)
             {
                 return;
             }
@@ -350,24 +349,164 @@ namespace LucaasBotBeta.Modules
             });
         }
 
-
-        [Command("testing")]
-        public async Task testing()
-        {
-            var users = Context.Guild.Users;
-            var partnered = users.Where(x => x.PublicFlags.HasValue && ((ulong)x.PublicFlags.Value & (ulong)UserProperties.Partner) != 0).ToList();
-
-            foreach (var user in partnered)
-            {
-                await ReplyAsync(user.Mention);
-            }
-        }
-
         [Command("lock")]
-        public async Task LockChannel(SocketTextChannel channel = null)
+        public async Task LockChannel(SocketGuildChannel channel = null)
         {
             var user = Context.User as SocketGuildUser;
 
+            if (!user.IsStaff())
+            {
+                await Context.Channel.SendErrorAsync("You do not have access to use this command!");
+                return;
+            }
+
+            SocketTextChannel targetChannel = null;
+
+            if (channel == null)
+            {
+                var contextChannel = Context.Channel as SocketTextChannel;
+                targetChannel = contextChannel;
+
+            }
+            else if (channel is SocketTextChannel textChannel)
+            {
+                targetChannel = textChannel;
+                var embed = new EmbedBuilder();
+                embed.WithTitle("Channel Locked");
+                embed.WithDescription("This channel has been locked!");
+                embed.WithColor(Color.Green);
+                await targetChannel.SendMessageAsync(embed: embed.Build());
+            }
+            else
+            {
+                await Context.Channel.SendErrorAsync("This is not a valid channel!");
+            }
+
+            var currentPerms = targetChannel.GetPermissionOverwrite(Context.Guild.EveryoneRole);
+            var newPerms = currentPerms.Value.Modify(sendMessages: PermValue.Deny);
+            await targetChannel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, newPerms);
+            if (channel != null)
+                await Context.Channel.SendSuccessAsync($"Locked {targetChannel.Mention}!");
+            else
+                await targetChannel.SendSuccessAsync($"Locked {targetChannel.Mention}!");
+        }
+
+        [Command("unlock")]
+        public async Task UnLockChannel(SocketGuildChannel channel = null)
+        {
+            var user = Context.User as SocketGuildUser;
+
+            if (!user.IsStaff())
+            {
+                await Context.Channel.SendErrorAsync("You do not have access to use this command!");
+                return;
+            }
+
+            SocketTextChannel targetChannel = null;
+
+            if (channel == null)
+            {
+                var contextChannel = Context.Channel as SocketTextChannel;
+                targetChannel = contextChannel;
+
+            }
+            else if (channel is SocketTextChannel textChannel)
+            {
+                targetChannel = textChannel;
+                var embed = new EmbedBuilder();
+                embed.WithTitle("Channel Unlocked");
+                embed.WithDescription("This channel has been unlocked!");
+                embed.WithColor(Color.Green);
+                await targetChannel.SendMessageAsync(embed: embed.Build());
+            }
+            else
+            {
+                await Context.Channel.SendErrorAsync("This is not a valid channel!");
+            }
+
+            var currentPerms = targetChannel.GetPermissionOverwrite(Context.Guild.EveryoneRole);
+            var newPerms = currentPerms.Value.Modify(sendMessages: PermValue.Inherit);
+            await targetChannel.AddPermissionOverwriteAsync(Context.Guild.EveryoneRole, newPerms);
+            if (channel != null)
+                await Context.Channel.SendSuccessAsync($"Unlocked {targetChannel.Mention}!");
+            else
+                await targetChannel.SendSuccessAsync($"Unlocked {targetChannel.Mention}!");
+        }
+
+        [Command("censor")]
+        public async Task CensorCommand(string choice = null, [Remainder] string censor = null)
+        {
+            var user = Context.User as SocketGuildUser;
+            var guildObj = Guild.GetOrCreateGuild(Context.Guild);
+            var censorList = Censor.GetCensors(Context.Guild.Id);
+
+            if (!user.IsStaff())
+            {
+                await Context.Channel.SendErrorAsync("You do not have access to use this command!");
+                return;
+            }
+
+            if (choice == null)
+            {
+                await Context.Channel.SendErrorAsync("Please provide a choice! `add/remove/list`");
+                return;
+            }
+
+            if (censor == null)
+            {
+                if (choice.ToLower().Equals("list"))
+                {
+                    string censorListContent = "";
+                    foreach (var doc in censorList)
+                    {
+                        censorListContent = censorListContent + $"{doc.CensorText},\n";
+                    }
+
+                    var embed = new EmbedBuilder();
+                    embed.WithTitle("Censored Phrases");
+                    embed.WithDescription(censorListContent);
+                    embed.WithColor(Color.Green);
+                    await Context.Channel.SendMessageAsync(embed: embed.Build());
+                    return;
+                }
+
+                await Context.Channel.SendErrorAsync("Please provide censor text!");
+                return;
+            }
+
+            switch (choice.ToLower())
+            {
+                case "add":
+
+                    if (censorList.Any(x => x.CensorText.ToLower() == censor.ToLower()))
+                    {
+                        await Context.Channel.SendErrorAsync("This phrase is already censored!");
+                        return;
+                    }
+
+                    var addCensor = guildObj.AddCensor(Context.Guild.Id, censor);
+                    await Context.Channel.SendSuccessAsync($"Added `{censor}` to the censor list!");
+
+                    break;
+
+                case "remove":
+
+                    if (censorList.Any(x => x.CensorText.ToLower().Contains(censor)) == false)
+                    {
+                        await Context.Channel.SendErrorAsync("This phrase is not censored!");
+                        return;
+                    }
+
+                    var censor1 = censorList.Where(x => x.CensorText.ToLower().Equals(censor.ToLower())).First();
+                    var delCensor = guildObj.DelCensor(censor1._id);
+                    await Context.Channel.SendSuccessAsync($"Removed `{censor}` from the censor list!");
+
+                    break;
+
+                default:
+                    await Context.Channel.SendErrorAsync("Please choose a valid choice! `add/remove/list`");
+                    return;
+            }
         }
     }
 }
