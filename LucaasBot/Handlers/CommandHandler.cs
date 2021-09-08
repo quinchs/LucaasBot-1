@@ -11,6 +11,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using LucaasBot;
 using LucaasBot.DataModels;
+using LucaasBot.Handlers;
 
 namespace LucaasBot.Services
 {
@@ -23,7 +24,7 @@ namespace LucaasBot.Services
         public ulong guildId = 464733888447643650;
         public Timer a = new Timer();
         public static int autoModMessageCounter = 5;
-        public Timer johnPing = new Timer();
+        //public Timer johnPing = new Timer();
 
         public CommandHandler(CommandService service, DiscordSocketClient client)
         {
@@ -46,15 +47,15 @@ namespace LucaasBot.Services
             a.Start();
             a.Elapsed += AutoModTimer;
 
-            johnPing.Interval = 28800000;
-            johnPing.Start();
-            johnPing.Elapsed += JohnPing;
+            //johnPing.Interval = 28800000;
+            //johnPing.Start();
+            //johnPing.Elapsed += JohnPing;
 
             _commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
             Logger.Write("Command handler <Green>Initialized</Green>", Severity.Core);
         }
-        
+
         private Dictionary<ulong, (int messageCount, ulong channelId)> channelMessageCount = new Dictionary<ulong, (int messageCount, ulong channelId)>();
 
         //private async Task InteractionCreated(SocketInteraction arg)
@@ -179,12 +180,53 @@ namespace LucaasBot.Services
 
             if (rawMessage.MentionedRoles.Count >= 3)
             {
-                await AutomodMute(user.Id, rawMessage.Channel.Id);
+                await AutomodMute(user.Id, rawMessage.Channel.Id, "raid");
             }
 
             if (rawMessage.MentionedUsers.Count >= 5)
             {
-                await AutomodMute(user.Id, rawMessage.Channel.Id);
+                await AutomodMute(user.Id, rawMessage.Channel.Id, "raid");
+            }
+
+            if (rawMessage.Content.Contains("http"))
+            {
+                var lowerCaseRawMessage1 = rawMessage.Content.ToLower();
+                string[] steamLinks = new string[]
+                {
+                    "steem",
+                    "sleam",
+                    "staem",
+                    "comnumnuty",
+                    "tradeofer",
+                    "hello i am leaving cs:go",
+                    "giving away my skins",
+                    "staem",
+                    "comnumnuty",
+                    "tradeofer",
+                };
+
+                if (steamLinks.Any(lowerCaseRawMessage1.Contains))
+                {
+                    await rawMessage.DeleteAsync();
+                    await AutomodMute(rawMessage.Author.Id, rawMessage.Channel.Id, "scam link");
+                }
+            }
+
+            var censorList = Censor.GetCensors(guildId);
+
+            var guildUser = (SocketGuildUser)rawMessage.Author;
+
+            if (guildUser.IsStaff())
+            {
+                return;
+            }
+
+            foreach (var doc in censorList)
+            {
+                if (rawMessage.ToString().ToLower().Contains(doc.CensorText.ToLower()))
+                {
+                    await rawMessage.DeleteAsync();
+                }
             }
         }
 
@@ -198,7 +240,7 @@ namespace LucaasBot.Services
                     var userId = item.Key;
                     Task.Run(async () =>
                     {
-                        await AutomodMute(userId, item.Value.channelId).ConfigureAwait(false);
+                        await AutomodMute(userId, item.Value.channelId, "raid").ConfigureAwait(false);
 
                     }).ConfigureAwait(false);
                 }
@@ -221,14 +263,14 @@ namespace LucaasBot.Services
             }
         }
 
-        public async void JohnPing(object s, EventArgs a)
-        {
-            var channel = _client.GetGuild(guildId).GetTextChannel(465083688795766785);
-            await channel.SendMessageAsync("<@561464966427705374> ");
-        }
+        //public async void JohnPing(object s, EventArgs a)
+        //{
+        //    var channel = _client.GetGuild(guildId).GetTextChannel(465083688795766785);
+        //    await channel.SendMessageAsync("<@561464966427705374> ");
+        //}
 
 
-        public async Task AutomodMute(ulong userId, ulong channelId)
+        public async Task AutomodMute(ulong userId, ulong channelId, string type)
         {
             var guild = _client.GetGuild(guildId);
             var user = guild.GetUser(userId);
@@ -263,11 +305,11 @@ namespace LucaasBot.Services
                 {
                     x.SlowModeInterval = 3;
                 });
-                embed.WithDescription("AutoModeration detected a potential raid! Slowmode has been set to `3` seconds!");
+                embed.WithDescription($"AutoModeration detected a potential {type}! Slowmode has been set to `3` seconds!");
             }
             catch
             {
-                embed.WithDescription("AutoModeration detected a potential raid! Slowmode was not set!");
+                embed.WithDescription($"AutoModeration detected a potential {type}! Slowmode was not set!");
             }
             await guild.GetTextChannel(channelId).SendMessageAsync("", false, embed.Build());
             //var builder = new ComponentBuilder().WithButton("Unmute User", $"unmute_{userId}", ButtonStyle.Primary).WithButton("Slowmode 0", "cancelSlow", ButtonStyle.Primary);
@@ -276,12 +318,13 @@ namespace LucaasBot.Services
             var modlogschannel = _client.GetGuild(guildId).GetTextChannel(581614769237262357);
             var log = new EmbedBuilder();
             log.WithTitle("AutoModeration Mute");
-            log.WithDescription($"**Offender:** {user.Mention}\n**Reason:** Detected Raid\n**Moderator:** LucaasBot Automoderation\n**In:** {guild.GetTextChannel(channelId).Mention}");
+            log.WithDescription($"**Offender:** {user.Mention}\n**Reason:** Detected {type}\n**Moderator:** LucaasBot Automoderation\n**In:** {guild.GetTextChannel(channelId).Mention}");
             log.WithColor(Color.Red);
             await modlogschannel.SendMessageAsync("", false, log.Build());
 
             Logger.Write($"User {user} was automuted", Severity.Core, Severity.Verbose);
         }
+
 
         public async Task MessageReceivedAsync(SocketMessage rawMessage)
         {
@@ -302,7 +345,7 @@ namespace LucaasBot.Services
                     await rawMessage.Channel.SendMessageAsync("https://media.tenor.com/images/7b56e0f8fbc3b6b29353260b7efa2278/tenor.gif", messageReference: new MessageReference(rawMessage.Id, rawMessage.Channel.Id, guildId));
                 }
             }
-            
+
 
             var argPos = 0;
             char prefix = '=';
@@ -334,14 +377,20 @@ namespace LucaasBot.Services
                 result.Error != CommandError.UnknownCommand && 
                 result.Error != CommandError.UnmetPrecondition)
             {
-                var embed = new EmbedBuilder();
-                embed.WithAuthor("Command Error", "https://cdn.discordapp.com/emojis/787035973287542854.png?v=1");
-                //embed.WithDescription(result.ErrorReason);
-                embed.WithDescription("There was an error, check logs.");
-                embed.WithColor(Color.Red);
-                await context.Channel.SendMessageAsync("", false, embed.Build());
+                if (result is ExecuteResult executeResult)
+                {
+                    var embed = new EmbedBuilder();
+                    embed.WithAuthor("Command Error", "https://cdn.discordapp.com/emojis/787035973287542854.png?v=1");
+                    if (result.Error.HasValue)
+                    {
+                        embed.WithDescription(executeResult.Exception.Message);
+                    }
+                    //embed.WithDescription("There was an error, check logs.");
+                    embed.WithColor(Color.Red);
+                    await context.Channel.SendMessageAsync("", false, embed.Build());
 
-                Logger.Write($"Command Error: {result.Error} - {result.ErrorReason}", Severity.Core, Severity.Warning);
+                    Logger.Write($"Command Error: {result.Error} - {result.ErrorReason}", Severity.Core, Severity.Warning);
+                }
             }
         }
     }

@@ -14,7 +14,8 @@ namespace LucaasBot.DataModels
         Kick,
         Ban,
         Mute,
-        Unmute
+        Unmute,
+        ABan
     }
 
     public class Modlogs

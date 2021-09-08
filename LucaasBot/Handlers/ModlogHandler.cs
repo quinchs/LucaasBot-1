@@ -65,8 +65,6 @@ namespace LucaasBot.Handlers
             _ = Task.Run(async () => await HandleModCommandAsync(context, action, target, reason, muteDir));
         }
 
-
-
         private async Task HandleModCommandAsync(SocketCommandContext context, ModlogAction action, IGuildUser target, string reason, TimeSpan? muteDir = null)
         {
             if (context.User is not SocketGuildUser user)
@@ -88,7 +86,7 @@ namespace LucaasBot.Handlers
 
             if (user.Hierarchy <= target.GetHiearchy())
             {
-                await context.Channel.SendErrorAsync("You cannot ban this user!");
+                await context.Channel.SendErrorAsync($"You cannot {action} this user!");
                 return;
             }
 
@@ -100,7 +98,7 @@ namespace LucaasBot.Handlers
 
             if (user.Id == target.Id)
             {
-                await context.Channel.SendErrorAsync("You cannot ban youself!");
+                await context.Channel.SendErrorAsync($"You cannot {action} youself!");
                 return;
             }
 
@@ -122,6 +120,7 @@ namespace LucaasBot.Handlers
             }
             catch(Exception x)
             {
+                await context.Channel.SendMessageAsync(target.Mention);
                 gotDM = false;
             }
 
@@ -143,6 +142,11 @@ namespace LucaasBot.Handlers
                 case ModlogAction.Unmute:
                     var mute = UserMutes.GetMute(target.Id);
                     await UnmuteUserAsync(target, mute);
+                    break;
+
+                case ModlogAction.ABan:
+                    await target.BanAsync(7, reason);
+                    await target.SendMessageAsync("You have been given the option to appeal: https://forms.gle/4QwJ4UNTHdsaT4he8");
                     break;
 
             }

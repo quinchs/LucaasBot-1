@@ -25,5 +25,7 @@ namespace LucaasBot
             => Database.GetCollection<UserMutes>("mute-times");
         public static IMongoCollection<Censor> CensoredCollection
             => Database.GetCollection<Censor>("censors");
+        public static IMongoCollection<Guild> GuildCollection
+          => Database.GetCollection<Guild>("guilds");
     }
 }
