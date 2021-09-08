@@ -124,31 +124,40 @@ namespace LucaasBot.Handlers
                 gotDM = false;
             }
 
-            switch (action)
+            try
             {
-                case ModlogAction.Ban:
-                    await target.BanAsync(7, reason);
-                    break;
+                switch (action)
+                {
+                    case ModlogAction.Ban:
+                        await target.BanAsync(7, reason);
+                        break;
 
-                case ModlogAction.Kick:
-                    await target.KickAsync(reason);
-                    break;
+                    case ModlogAction.Kick:
+                        await target.KickAsync(reason);
+                        break;
 
-                case ModlogAction.Mute:
-                    var _ = new UserMutes(target.Id, DateTime.UtcNow.Add(muteDir.GetValueOrDefault()));
-                    await target.AddRoleAsync(465097693379690497);
-                    break;
+                    case ModlogAction.Mute:
+                        var _ = new UserMutes(target.Id, DateTime.UtcNow.Add(muteDir.GetValueOrDefault()));
+                        await target.AddRoleAsync(465097693379690497);
+                        break;
 
-                case ModlogAction.Unmute:
-                    var mute = UserMutes.GetMute(target.Id);
-                    await UnmuteUserAsync(target, mute);
-                    break;
+                    case ModlogAction.Unmute:
+                        var mute = UserMutes.GetMute(target.Id);
+                        await UnmuteUserAsync(target, mute);
+                        break;
 
-                case ModlogAction.ABan:
-                    await target.BanAsync(7, reason);
-                    await target.SendMessageAsync("You have been given the option to appeal: https://forms.gle/4QwJ4UNTHdsaT4he8");
-                    break;
+                    case ModlogAction.ABan:
+                        await target.BanAsync(7, reason);
+                        await target.SendMessageAsync("You have been given the option to appeal: https://forms.gle/4QwJ4UNTHdsaT4he8");
+                        break;
 
+                }
+            }
+            catch(Exception x)
+            {
+                await context.Channel.SendErrorAsync($"Failed to {action} {target.Mention}: {x.Message}");
+                discordUser.DelModlog(log._id);
+                return;
             }
 
             var modlogsChannel = context.Guild.GetTextChannel(663060075740659715);
