@@ -5,5 +5,4 @@
 /.vs
 
 # Ignore files
-Extensions.cs
 Config.json

@@ -5,14 +5,23 @@ using LucaasBot.DataModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace LucaasBot
 {
-    public static class Additions
+    public static class Extensions
     {
+        public static EmbedBuilder AddPaginatedFooter(this EmbedBuilder embed, int curPage, int? lastPage)
+        {
+            if (lastPage != null)
+                return embed.WithFooter(efb => efb.WithText($"{curPage + 1} / {lastPage + 1}"));
+            else
+                return embed.WithFooter(efb => efb.WithText(curPage.ToString()));
+        }
+
         public static int GetHiearchy(this IGuildUser user)
         {
             if (user.Guild.OwnerId == user.Id)
@@ -21,11 +30,23 @@ namespace LucaasBot
             var orderedRoles = user.Guild.Roles.OrderByDescending(x => x.Position);
             return orderedRoles.Where(x => user.RoleIds.Contains(x.Id)).Max(x => x.Position);
         }
+        public static EmbedAuthorBuilder WithMusicIcon(this EmbedAuthorBuilder eab) =>
+            eab.WithIconUrl("http://i.imgur.com/nhKS3PT.png");
+        public static IMessage DeleteAfter(this IUserMessage msg, int seconds)
+        {
+            Task.Run(async () =>
+            {
+                await Task.Delay(seconds * 1000).ConfigureAwait(false);
+                try { await msg.DeleteAsync().ConfigureAwait(false); }
+                catch { }
+            });
+            return msg;
+        }
 
-        public static async Task<IMessage> SendErrorAsync(this ISocketMessageChannel channel, string description = null)
+        public static async Task<IUserMessage> SendErrorAsync(this IMessageChannel channel, string description = null)
         {
             var embed = new EmbedBuilder()
-                .WithAuthor("Command Error", "https://cdn.discordapp.com/emojis/312314733816709120.png?v=1")
+                .WithAuthor("Error", "https://cdn.discordapp.com/emojis/312314733816709120.png?v=1")
                 .WithDescription(description ?? "There was an error, check logs.")
                 .WithColor(Color.Red)
                 .Build();
@@ -33,10 +54,10 @@ namespace LucaasBot
             return await channel.SendMessageAsync(embed: embed);
         }
 
-        public static async Task<IMessage> SendSuccessAsync(this ISocketMessageChannel channel, string description, string footer = null)
+        public static async Task<IUserMessage> SendSuccessAsync(this IMessageChannel channel, string description, string footer = null)
         {
             var embed = new EmbedBuilder()
-                .WithAuthor("Command Success", "https://cdn.discordapp.com/emojis/312314752711786497.png?v=1")
+                .WithAuthor("Success", "https://cdn.discordapp.com/emojis/312314752711786497.png?v=1")
                 .WithDescription(description)
                 .WithColor(Color.Green);
 
@@ -46,7 +67,7 @@ namespace LucaasBot
             return await channel.SendMessageAsync(embed: embed.Build());
         }
 
-        public static async Task<IMessage> SendInfractionAsync(this ISocketMessageChannel channel, IGuildUser userAccount, IGuildUser moderator, Modlogs log, bool gotDM)
+        public static async Task<IUserMessage> SendInfractionAsync(this IMessageChannel channel, IGuildUser userAccount, IGuildUser moderator, Modlogs log, bool gotDM)
         {
             var embed = new EmbedBuilder()
                 .WithAuthor($"{userAccount} was {log.Action.Format()}", "https://cdn.discordapp.com/emojis/312314752711786497.png?v=1")
@@ -58,7 +79,7 @@ namespace LucaasBot
             return await channel.SendMessageAsync(embed: embed);
         }
 
-        public static async Task<IMessage> ModlogAsync(this ISocketMessageChannel channel, IGuildUser target, IGuildUser mod, Modlogs log, ISocketMessageChannel targetChannel, bool gotDM)
+        public static async Task<IUserMessage> ModlogAsync(this IMessageChannel channel, IGuildUser target, IGuildUser mod, Modlogs log, IMessageChannel targetChannel, bool gotDM)
         {
             var embed = new EmbedBuilder()
                 .WithTitle($"{log.Action.Format()}")
@@ -162,6 +183,37 @@ namespace LucaasBot
             }
 
             return t;
+        }
+
+        /// <summary>
+        /// returns an IEnumerable with randomized element order
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="list"></param>
+        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> items)
+        {
+            using (var provider = RandomNumberGenerator.Create())
+            {
+                var list = items.ToList();
+                var n = list.Count;
+                while (n > 1)
+                {
+                    var box = new byte[(n / Byte.MaxValue) + 1];
+                    int boxSum;
+                    do
+                    {
+                        provider.GetBytes(box);
+                        boxSum = box.Sum(b => b);
+                    }
+                    while (!(boxSum < n * ((Byte.MaxValue * box.Length) / n)));
+                    var k = (boxSum % n);
+                    n--;
+                    var value = list[k];
+                    list[k] = list[n];
+                    list[n] = value;
+                }
+                return list;
+            }
         }
     }
 }

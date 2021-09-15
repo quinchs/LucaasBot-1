@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LucaasBot.Music.Exceptions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -75,7 +76,7 @@ namespace LucaasBot.Music.Entities
             lock (lockObj)
             {
                 if (MaxQueueSize != 0 && Songs.Count >= MaxQueueSize)
-                    throw new ArgumentOutOfRangeException(nameof(info), "Queue is full");
+                    throw new QueueFullException();
 
                 Songs.AddLast(info);
             }
@@ -89,7 +90,7 @@ namespace LucaasBot.Music.Entities
             lock (lockObj)
             {
                 if (MaxQueueSize != 0 && Songs.Count >= MaxQueueSize)
-                    throw new ArgumentOutOfRangeException(nameof(info), "Queue is full");
+                    throw new QueueFullException();
 
 
                 var currentSong = Current.Song;

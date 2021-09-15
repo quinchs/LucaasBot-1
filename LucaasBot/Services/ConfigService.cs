@@ -16,17 +16,22 @@ namespace LucaasBot
         /// <summary>
         ///     The token of the bot.
         /// </summary>
-        public string Token { get; set; }
+        public string Token { get; set; } = "TOKEN_HERE";
 
         /// <summary>
         ///     The mongo connection string.
         /// </summary>
-        public string MongoCS { get; set; }
+        public string MongoCS { get; set; } = "MONGO_CS_HERE";
 
         /// <summary>
         ///     The Hapsy file host token.
         /// </summary>
-        public string HapsyToken { get; set; }
+        public string HapsyToken { get; set; } = "HAPSY_TOKEN_HERE";
+
+        /// <summary>
+        ///     The Google API Key to use for music.
+        /// </summary>
+        public string GoogleApiKey { get; set; } = "GOOGLE_API_KEY_HERE";
     }
 
     /// <summary>
@@ -50,7 +55,12 @@ namespace LucaasBot
         public static void LoadConfig()
         {
             if (!File.Exists(ConfigPath))
+            {
+                var c = new Config();
+                File.WriteAllText(ConfigPath, JsonConvert.SerializeObject(c));
+
                 throw new FileNotFoundException("No config file found, please make a config file in the current directory!");
+            }
 
             var json = File.ReadAllText(ConfigPath);
 

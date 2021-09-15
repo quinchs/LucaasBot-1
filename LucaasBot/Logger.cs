@@ -18,10 +18,21 @@ namespace LucaasBot
         Rest,
         Critical,
         Core,
-        Verbose
+        Verbose,
+        Music
     }
     public class Logger
     {
+
+        public static void Error(object data, Severity? sev = null)
+               => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Error } : new Severity[] { Severity.Error });
+        public static void Log(object data, Severity? sev = null)
+               => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Log  } : new Severity[] { Severity.Log });
+        public static void Warn(object data, Severity? sev = null)
+            => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Warning  } : new Severity[] { Severity.Warning });
+        public static void Debug(object data, Severity? sev = null)
+            => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Debug } : new Severity[] { Severity.Debug });
+
         public static void Write(object data, Severity sev = Severity.Log)
            => _logEvent?.Invoke(null, (data, new Severity[] { sev }));
         public static void Write(object data, params Severity[] sevs)
