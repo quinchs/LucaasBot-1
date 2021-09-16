@@ -39,7 +39,7 @@ namespace LucaasBot.Modules
         {
             if (arg is SocketSlashCommand command && command.Data.Name == "report")
             {
-                await command.RespondAsync(embed: null, type: InteractionResponseType.DeferredChannelMessageWithSource, ephemeral: true);
+                await command.DeferAsync(true);
 
                 _ = Task.Run(async () =>
                 {

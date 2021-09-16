@@ -7,6 +7,7 @@ using LucaasBot.Services;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,7 +18,7 @@ namespace LucaasBot.Music.Services
     public class MusicService : DiscordHandler
     {
         public const string MusicDataPath = "data/musicdata";
-        public const float DefaultMusicVolume = 1.0f;
+        public const float DefaultMusicVolume = 0.5f;
         public GoogleApiService Google { get; private set; }
         public ConcurrentDictionary<ulong, MusicPlayer> MusicPlayers { get; } = new ConcurrentDictionary<ulong, MusicPlayer>();
 
@@ -142,6 +143,7 @@ namespace LucaasBot.Music.Services
             });
         }
 
+
         public MusicPlayer GetPlayerOrDefault(ulong guildId)
         {
             if (MusicPlayers.TryGetValue(guildId, out var mp))
@@ -193,5 +195,7 @@ namespace LucaasBot.Music.Services
             if (MusicPlayers.TryRemove(id, out var mp))
                 await mp.Destroy().ConfigureAwait(false);
         }
+
+        
     }
 }

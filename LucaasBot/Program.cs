@@ -6,6 +6,10 @@ using LucaasBot.Services;
 using System;
 using System.Threading.Tasks;
 using System.Linq;
+using ConvertApiDotNet;
+using System.Net.Http;
+using System.Text.RegularExpressions;
+using LucaasBot.Music.Services;
 
 namespace LucaasBot
 {
@@ -48,13 +52,26 @@ namespace LucaasBot
             var handlerService = new HandlerService(_client);
             var commandHandler = new CommandHandler(commandServeice, client);
 
+           
 
             await Task.Delay(-1);
         }
 
         private Task LogAsync(LogMessage log)
         {
-            Logger.Write($"{log.Message} {log.Exception}", log.Severity.ToLogSeverity());
+            if (log.Source.StartsWith("Audio ") && (log.Message?.StartsWith("Sent") ?? false))
+                return Task.CompletedTask;
+
+            Severity? sev = null;
+
+            if (log.Source.StartsWith("Audio "))
+                sev = Severity.Music;
+            if (log.Source.StartsWith("Gateway"))
+                sev = Severity.Socket;
+            if (log.Source.StartsWith("Rest"))
+                sev = Severity.Rest;
+
+            Logger.Write($"{log.Message} {log.Exception}", sev.HasValue ? new Severity[] { sev.Value, log.Severity.ToLogSeverity() } : new Severity[] { log.Severity.ToLogSeverity() });
 
             return Task.CompletedTask;
         }

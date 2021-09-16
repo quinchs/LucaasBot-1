@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
+    <StartupObject>LucaasBot.Program</StartupObject>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -14,7 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Net.Labs" Version="3.0.4" />
+    <PackageReference Include="ConvertApi" Version="3.0.7" />
+    <PackageReference Include="Discord.Net.Labs" Version="3.0.3" />
     <PackageReference Include="Google.Apis.Customsearch.v1" Version="1.49.0.2084" />
     <PackageReference Include="Google.Apis.Urlshortener.v1" Version="1.41.1.138" />
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.55.0.2440" />
@@ -25,6 +27,21 @@
     <PackageReference Include="RestSharp" Version="106.12.0" />
     <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
     <PackageReference Include="YoutubeExplode" Version="6.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Music\libs\32\libsodium.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Music\libs\32\opus.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Music\libs\64\libsodium.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Music\libs\64\opus.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

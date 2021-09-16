@@ -150,7 +150,7 @@ namespace LucaasBot.Services
                 foreach (var component in item.Components)
                 {
                     if (component is ButtonComponent button && button.CustomId != parsedArg.Data.CustomId)
-                        row.WithComponent(button);
+                        row.AddComponent(button);
                 }
 
                 builder.ActionRows.Add(row);
@@ -389,7 +389,7 @@ namespace LucaasBot.Services
                     embed.WithColor(Color.Red);
                     await context.Channel.SendMessageAsync("", false, embed.Build());
 
-                    Logger.Write($"Command Error: {result.Error} - {result.ErrorReason}", Severity.Core, Severity.Warning);
+                    Logger.Write($"Command Error: {result.Error} - {result.ErrorReason}{(result.Error.HasValue ? $"\n{executeResult.Exception}" : "")}", Severity.Core, Severity.Warning);
                 }
             }
         }

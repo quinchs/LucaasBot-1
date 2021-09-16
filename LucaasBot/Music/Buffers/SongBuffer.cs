@@ -14,8 +14,6 @@ namespace LucaasBot.Music.Buffers
         private readonly PoopyBufferReborn _buffer;
         private Stream _outStream;
 
-        private readonly Logger _log;
-
         public string SongUri { get; private set; }
         public TaskCompletionSource<bool> PrebufferingCompleted { get; }
 
@@ -53,6 +51,7 @@ Check the guides for your platform on how to setup ffmpeg correctly:
             if (!_isLocal)
                 args = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 " + args;
 
+            Logger.Debug($"Starting FFMPEG with {args}", Severity.Music);
             return Process.Start(new ProcessStartInfo
             {
                 FileName = "ffmpeg",

@@ -51,8 +51,8 @@ namespace LucaasBot
             embed.AddPaginatedFooter(currentPage, lastPage);
 
             var components = new ComponentBuilder()
-                .WithButton(customId: "page-left",  emote: (Emoji)"⬅")
-                .WithButton(customId: "page-right", emote: (Emoji)"➡");
+                .WithButton(customId: "page-left",  emote: new Emoji("⬅"))
+                .WithButton(customId: "page-right", emote: new Emoji("➡"));
 
             var msg = await channel.SendMessageAsync(embed: embed.Build(), component: components.Build());
 

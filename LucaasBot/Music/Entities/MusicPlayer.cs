@@ -367,17 +367,18 @@ namespace LucaasBot.Music.Entities
                     newVoiceChannel = false;
 
                     var curUser = await VoiceChannel.Guild.GetCurrentUserAsync().ConfigureAwait(false);
-                    if (curUser.VoiceChannel != null)
-                    {
-                        Logger.Log("Connecting", Severity.Music);
-                        var ac = await VoiceChannel.ConnectAsync().ConfigureAwait(false);
-                        Logger.Log("Connected, stopping", Severity.Music);
-                        await ac.StopAsync().ConfigureAwait(false);
-                        Logger.Log("Disconnected", Severity.Music);
-                        await Task.Delay(1000).ConfigureAwait(false);
-                    }
+                    //if (curUser.VoiceChannel != null)
+                    //{
+                    //    Logger.Log("Connecting", Severity.Music);
+                    //    var ac = await VoiceChannel.ConnectAsync().ConfigureAwait(false);
+                    //    Logger.Log("Connected, stopping", Severity.Music);
+                    //    await ac.StopAsync().ConfigureAwait(false);
+                    //    Logger.Log("Disconnected", Severity.Music);
+                    //    await Task.Delay(1000).ConfigureAwait(false);
+                    //}
                     Logger.Log("Connecting", Severity.Music);
                     _audioClient = await VoiceChannel.ConnectAsync().ConfigureAwait(false);
+                    await curUser.ModifyAsync(x => x.Deaf = true);
                 }
                 catch
                 {
@@ -474,16 +475,18 @@ namespace LucaasBot.Music.Entities
             lock (locker)
             {
                 Stopped = true;
+                
                 Autoplay = false;
                 //Queue.ResetCurrent();
                 if (clearQueue)
                     Queue.Clear();
                 Unpause();
+                
                 CancelCurrentSong();
             }
         }
 
-        private void Unpause()
+        public void Unpause()
         {
             lock (locker)
             {
@@ -493,6 +496,19 @@ namespace LucaasBot.Music.Entities
                     PauseTaskSource = null;
                 }
             }
+
+            OnPauseChanged?.Invoke(this, PauseTaskSource != null);
+        }
+
+        public void Pause()
+        {
+            lock (locker)
+            {
+                if (PauseTaskSource == null)
+                    PauseTaskSource = new TaskCompletionSource<bool>();
+            }
+
+            OnPauseChanged?.Invoke(this, PauseTaskSource != null);
         }
 
         public void TogglePause()
@@ -592,7 +608,6 @@ namespace LucaasBot.Music.Entities
                 Stop();
                 Exited = true;
                 Unpause();
-
                 OnCompleted = null;
                 OnPauseChanged = null;
                 OnStarted = null;

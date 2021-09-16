@@ -43,7 +43,7 @@ namespace LucaasBot
             return msg;
         }
 
-        public static async Task<IUserMessage> SendErrorAsync(this IMessageChannel channel, string description = null)
+        public static async Task<IUserMessage> SendErrorAsync(this IMessageChannel channel, string description = null, MessageReference @ref = null)
         {
             var embed = new EmbedBuilder()
                 .WithAuthor("Error", "https://cdn.discordapp.com/emojis/312314733816709120.png?v=1")
@@ -51,7 +51,7 @@ namespace LucaasBot
                 .WithColor(Color.Red)
                 .Build();
 
-            return await channel.SendMessageAsync(embed: embed);
+            return await channel.SendMessageAsync(embed: embed, messageReference: @ref);
         }
 
         public static async Task<IUserMessage> SendSuccessAsync(this IMessageChannel channel, string description, string footer = null)

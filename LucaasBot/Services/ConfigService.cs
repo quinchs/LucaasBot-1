@@ -3,7 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace LucaasBot
@@ -13,24 +15,16 @@ namespace LucaasBot
     /// </summary>
     public class Config
     {
-        /// <summary>
-        ///     The token of the bot.
-        /// </summary>
+        [ConfigSummary("The token of the bot.")]
         public string Token { get; set; } = "TOKEN_HERE";
 
-        /// <summary>
-        ///     The mongo connection string.
-        /// </summary>
+        [ConfigSummary("The mongo connection string.")]
         public string MongoCS { get; set; } = "MONGO_CS_HERE";
 
-        /// <summary>
-        ///     The Hapsy file host token.
-        /// </summary>
+        [ConfigSummary("The Hapsy file host token.")]
         public string HapsyToken { get; set; } = "HAPSY_TOKEN_HERE";
 
-        /// <summary>
-        ///     The Google API Key to use for music.
-        /// </summary>
+        [ConfigSummary("To Google API key to be used for music related services.")]
         public string GoogleApiKey { get; set; } = "GOOGLE_API_KEY_HERE";
     }
 
@@ -42,7 +36,7 @@ namespace LucaasBot
         /// <summary>
         ///     The location of the config file relative to the current directory.
         /// </summary>
-        public const string ConfigPath = @"./Config.json";
+        public const string ConfigPath = @"./Config.jsonc";
 
         /// <summary>
         ///     The currently loaded config.
@@ -65,6 +59,38 @@ namespace LucaasBot
             var json = File.ReadAllText(ConfigPath);
 
             Config = JsonConvert.DeserializeObject<Config>(json);
+
+            // Save it to add any unadded properties
+            File.WriteAllText(ConfigPath, CompileConfig(Config));
+        }
+
+        private static string CompileConfig(Config conf)
+        {
+            string json = JsonConvert.SerializeObject(conf, Formatting.Indented);
+
+            var props = conf.GetType().GetProperties().Where(x => x.CustomAttributes.Any(y => y.AttributeType == typeof(ConfigSummary)));
+
+            foreach(var prop in props)
+            {
+                var s = prop.GetCustomAttribute<ConfigSummary>().Summary;
+
+                json = Regex.Replace(json, @$"""({prop.Name})"":", m => 
+                {
+                    // count whitespaces
+                    int ws = 0;
+                    for(int i = m.Index - 1; i != 0; i--)
+                    {
+                        char c = json[i];
+                        if (c != ' ' && c != '\\')
+                            break;
+                        ws++;
+                    }
+
+                    return $"// {s}\n{" ".PadRight(ws)}{m.Value}";
+                });
+            }
+
+            return json;
         }
 
         /// <summary>
@@ -78,6 +104,17 @@ namespace LucaasBot
             File.WriteAllText(ConfigPath, json);
 
             Config = conf;
+        }
+    }
+
+    public class ConfigSummary : Attribute
+    {
+        public readonly string Summary;
+
+
+        public ConfigSummary(string summary)
+        {
+            this.Summary = summary;
         }
     }
 }

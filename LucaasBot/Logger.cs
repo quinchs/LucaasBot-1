@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -134,6 +135,7 @@ namespace LucaasBot
             { Severity.Socket, ConsoleColor.Blue },
             { Severity.Rest, ConsoleColor.Magenta },
             { Severity.Verbose, ConsoleColor.DarkCyan },
+            { Severity.Music, ConsoleColor.DarkMagenta }
         };
 
         private static void HandleQueueWrite()
@@ -156,19 +158,18 @@ namespace LucaasBot
 
                     var items = ProcessColors($"\u001b[38;5;249m{DateTime.UtcNow.ToString("O")} " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - \u001b[37;1m{data}");
 
-                    string msg = "";
-                    
-                    foreach (var item in items)
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     {
-#if DEBUG
-                        Console.ForegroundColor = item.color;
-                        Console.Write(item.value);
-#else
-                        Console.Write($"{ConsoleColorToANSI(item.color)}{item.value}\u001b[0m");
-#endif
-                        msg += item.value;
+                        Console.Write($"{string.Join("", items.Select(item => $"{ConsoleColorToANSI(item.color)}{item.value}\u001b[0m"))}");
                     }
-
+                    else
+                    {
+                        foreach (var item in items)
+                        {
+                            Console.ForegroundColor = item.color;
+                            Console.Write(item.value);
+                        }
+                    }
 
                     Console.Write("\n");
                 }
