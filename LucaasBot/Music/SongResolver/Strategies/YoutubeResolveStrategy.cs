@@ -16,17 +16,18 @@ namespace LucaasBot.Music
         {
             try
             {
+                return await ResolveWithYtExplode(query).ConfigureAwait(false);
+            }
+            catch (Exception ex) { Logger.Warn(ex, Severity.Music); }
+
+            try
+            {
                 var s = await ResolveWithYtDl(query).ConfigureAwait(false);
                 if (s != null)
                     return s;
             }
             catch (Exception ex) { Logger.Warn(ex, Severity.Music); }
 
-            try
-            {
-                return await ResolveWithYtExplode(query).ConfigureAwait(false);
-            }
-            catch (Exception ex) { Logger.Warn(ex, Severity.Music); }
             return null;
         }
 

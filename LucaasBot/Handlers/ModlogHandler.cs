@@ -55,17 +55,17 @@ namespace LucaasBot.Handlers
             }
             finally
             {
-                await user.ModifyAsync(x => x.RoleIds = user.RoleIds.Where(x => x != 465097693379690497).ToArray());
+                await user.ModifyAsync(x => x.RoleIds = user.RoleIds.Where(x => x != 465097693379690497 && x != Guild.Id).ToArray());
                 mute.Delete();
             }
         }
 
-        public void HandleModCommand(SocketCommandContext context, ModlogAction action, IGuildUser target, string reason, TimeSpan? muteDir = null)
+        public void HandleModCommand(ICommandContext context, ModlogAction action, IGuildUser target, string reason, TimeSpan? muteDir = null)
         {
             _ = Task.Run(async () => await HandleModCommandAsync(context, action, target, reason, muteDir));
         }
 
-        private async Task HandleModCommandAsync(SocketCommandContext context, ModlogAction action, IGuildUser target, string reason, TimeSpan? muteDir = null)
+        private async Task HandleModCommandAsync(ICommandContext context, ModlogAction action, IGuildUser target, string reason, TimeSpan? muteDir = null)
         {
             if (context.User is not SocketGuildUser user)
             {
@@ -160,7 +160,7 @@ namespace LucaasBot.Handlers
                 return;
             }
 
-            var modlogsChannel = context.Guild.GetTextChannel(663060075740659715);
+            var modlogsChannel = await context.Guild.GetTextChannelAsync(663060075740659715);
             await modlogsChannel.ModlogAsync(target, user, log, context.Channel, gotDM);
 
             await context.Channel.SendInfractionAsync(target, user, log, gotDM);

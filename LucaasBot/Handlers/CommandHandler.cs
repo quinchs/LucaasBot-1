@@ -12,24 +12,29 @@ using MongoDB.Driver;
 using LucaasBot;
 using LucaasBot.DataModels;
 using LucaasBot.Handlers;
+using LucaasBot.TypeReaders;
+using LucaasBot.Services;
 
-namespace LucaasBot.Services
+namespace LucaasBot.Handlers
 {
     public class CommandHandler
     {
+        public static DualPurposeCommandService Service
+            => _commands;
+
         // setup fields to be set later in the constructor
         //private readonly IConfiguration _config;
-        private readonly CommandService _commands;
+        private static DualPurposeCommandService _commands;
         private readonly DiscordSocketClient _client;
         public ulong guildId = 464733888447643650;
         public Timer a = new Timer();
         public static int autoModMessageCounter = 5;
         //public Timer johnPing = new Timer();
 
-        public CommandHandler(CommandService service, DiscordSocketClient client)
+        public CommandHandler(DualPurposeCommandService service, DiscordSocketClient client)
         {
             _commands = service;
-            _commands.AddTypeReader(typeof(IGuildUser), TypeReader.UserTypeReader.Instance);
+            _commands.AddTypeReader(typeof(IGuildUser), UserTypeReader.Instance);
             _client = client;
 
             _commands.CommandExecuted += CommandExecutedAsync;
@@ -51,7 +56,7 @@ namespace LucaasBot.Services
             //johnPing.Start();
             //johnPing.Elapsed += JohnPing;
 
-            _commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
+            _commands.RegisterModulesAsync(Assembly.GetEntryAssembly(), null).GetAwaiter().GetResult();
 
             Logger.Write("Command handler <Green>Initialized</Green>", Severity.Core);
         }
@@ -356,7 +361,7 @@ namespace LucaasBot.Services
                 return;
             }
 
-            var context = new SocketCommandContext(_client, message);
+            var context = await _commands.ResolveContextAsync(_client, message).ConfigureAwait(false);
             await _commands.ExecuteAsync(context, argPos, null, MultiMatchHandling.Best);
         }
 

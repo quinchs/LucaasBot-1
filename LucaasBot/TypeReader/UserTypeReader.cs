@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace LucaasBot.TypeReader
+namespace LucaasBot.TypeReaders
 {
     public class UserTypeReader : Discord.Commands.TypeReader
     {

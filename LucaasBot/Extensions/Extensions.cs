@@ -14,6 +14,57 @@ namespace LucaasBot
 {
     public static class Extensions
     {
+        public static ApplicationCommandProperties ToProperties(this RestGuildCommand command)
+        {
+            switch (command.Type)
+            {
+                case ApplicationCommandType.Slash:
+                    var props = new SlashCommandBuilder()
+                    {
+                        Name = command.Name,
+                        DefaultPermission = command.DefaultPermission,
+                        Description = command.Description,
+                        Options = command.Options.Any() ? command.Options.Select(x => new SlashCommandOptionBuilder()
+                        {
+                            Type = x.Type,
+                            Required = x.Required ?? false,
+                            Name = x.Name,
+                            Default = x.Default,
+                            Description = x.Description,
+                            Choices = x.Choices?.Any() ?? false ? x.Choices.Select(x => new ApplicationCommandOptionChoiceProperties()
+                            {
+                                Name = x.Name,
+                                Value = x.Value
+                            }).ToList() : null,
+                            Options = x.Options?.Any() ?? false ? x.Options.Select(x => ToProperties(x)).ToList() : null 
+                        }).ToList() : null,
+                    };
+
+                    return props.Build();
+
+                default:
+                    return null;
+            }
+        }
+
+        public static SlashCommandOptionBuilder ToProperties(RestApplicationCommandOption x)
+        {
+            return new SlashCommandOptionBuilder()
+            {
+                Type = x.Type,
+                Required = x.Required ?? false,
+                Name = x.Name,
+                Default = x.Default,
+                Description = x.Description,
+                Choices = x.Choices.Any() ? x.Choices.Select(y => new ApplicationCommandOptionChoiceProperties()
+                {
+                    Name = y.Name,
+                    Value = y.Value
+                }).ToList() : null,
+                Options = x.Options.Any() ? x.Options.Select(z => ToProperties(z)).ToList() : null
+            };
+        }
+
         public static EmbedBuilder AddPaginatedFooter(this EmbedBuilder embed, int curPage, int? lastPage)
         {
             if (lastPage != null)
@@ -41,6 +92,29 @@ namespace LucaasBot
                 catch { }
             });
             return msg;
+        }
+
+        public static async Task<IUserMessage> SendErrorAsync(this DualPurposeContext context, string description = null, bool ephemeral = false, MessageReference @ref = null)
+        {
+            var embed = new EmbedBuilder()
+                .WithAuthor("Error", "https://cdn.discordapp.com/emojis/312314733816709120.png?v=1")
+                .WithDescription(description ?? "There was an error, check logs.")
+                .WithColor(Color.Red)
+                .Build();
+
+            return await context.ReplyAsync(embed: embed, messageReference: @ref);
+        }
+        public static async Task<IUserMessage> SendSuccessAsync(this DualPurposeContext context, string description, bool ephemeral = false, MessageReference @ref = null, string footer = null)
+        {
+            var embed = new EmbedBuilder()
+                .WithAuthor("Success", "https://cdn.discordapp.com/emojis/312314752711786497.png?v=1")
+                .WithDescription(description)
+                .WithColor(Color.Green);
+
+            if (footer != null)
+                embed.WithFooter(footer);
+
+            return await context.ReplyAsync(embed: embed.Build(), ephemeral: ephemeral, messageReference: @ref);
         }
 
         public static async Task<IUserMessage> SendErrorAsync(this IMessageChannel channel, string description = null, MessageReference @ref = null)

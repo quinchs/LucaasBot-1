@@ -14,6 +14,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace LucaasBot.Music.Services
 {
@@ -111,7 +112,7 @@ namespace LucaasBot.Music.Services
             query.MaxResults = count;
             query.Q = keywords;
             query.Type = "video";
-            return (await query.ExecuteAsync().ConfigureAwait(false)).Items.Select(i => (i.Snippet.Title.TrimTo(50), i.Id.VideoId, "http://www.youtube.com/watch?v=" + i.Id.VideoId));
+            return (await query.ExecuteAsync().ConfigureAwait(false)).Items.Select(i => (HttpUtility.HtmlDecode(i.Snippet.Title).TrimTo(50), i.Id.VideoId, "http://www.youtube.com/watch?v=" + i.Id.VideoId));
         }
 
         public Task<string> ShortenUrl(Uri url) => ShortenUrl(url.ToString());

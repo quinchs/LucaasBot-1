@@ -192,7 +192,7 @@ namespace LucaasBotBeta.Modules
         }
 
         [Command("slowmode")]
-        [Alias("s")]
+        [Alias("sl")]
         public async Task Slowmode(int value = 999)
         {
             if (Context.User is not SocketGuildUser user)

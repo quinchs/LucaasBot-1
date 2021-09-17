@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using LucaasBot.Music.Entities;
 using LucaasBot.Music.Exceptions;
 using LucaasBot.Music.Services;
@@ -14,7 +15,7 @@ using System.Threading.Tasks;
 namespace LucaasBot.Modules
 {
     [RequireContext(ContextType.Guild), RequireChannel(828687366893076480)] // music channel id.
-    public class MusicCommands : ModuleBase<SocketCommandContext>
+    public class MusicCommands : DualPurposeModuleBase
     {
         public MusicService MusicService
             => HandlerService.GetHandlerInstance<MusicService>();
@@ -89,7 +90,7 @@ namespace LucaasBot.Modules
                     return;
                 }
 
-                await Next().ConfigureAwait(false);
+                await Context.SendErrorAsync("Please specify a name or url of a song", true, Context.Message.Reference);
             }
             else if (int.TryParse(query, out var index))
                 if (index >= 1)
@@ -171,7 +172,20 @@ namespace LucaasBot.Modules
         [Command("join"), Alias("j")]
         public async Task Join()
         {
+            var vc = (Context.User as SocketGuildUser).VoiceChannel;
+            if (vc == null)
+            {
+                await Context.SendErrorAsync("You must be in a voice channel!", true, Context.Message.Reference);
+                return;
+            }
+
+            await Context.Guild.CurrentUser.ModifyAsync(x => x.Channel = vc);
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
+
+            if (Context.IsInteraction)
+                await Context.Interaction.RespondAsync($"{new Emoji("👋")} <#{vc.Id}>");
+            else
+                await Context.Message.AddReactionAsync((Emoji)"👍");
         }
 
         [Command("queue"), Alias("q")]
@@ -182,7 +196,7 @@ namespace LucaasBot.Modules
             return InternalPlay(query, forceplay: false);
         }
 
-        [Command("queuenext"), Alias("qn")]
+        [Command("queuenext"), Alias("qn", "queue-next"), RequireDJ]
         public async Task QueueNext([Remainder] string query)
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
@@ -198,7 +212,7 @@ namespace LucaasBot.Modules
 
             if (!videos.Any())
             {
-                await Context.Channel.SendErrorAsync("No song found.").ConfigureAwait(false);
+                await Context.SendErrorAsync($"No song found related to \"{query}\"", true).ConfigureAwait(false);
                 return;
             }
 
@@ -214,12 +228,15 @@ namespace LucaasBot.Modules
                 selectMenu.AddOption(vid.Name.TrimTo(100), $"{i}");
             }
 
-            var msg = await Context.Channel.SendMessageAsync(embed: new EmbedBuilder()
+            var msg = await Context.ReplyAsync(embed: new EmbedBuilder()
                 .WithColor(Color.Green)
                 .WithTitle("Select a song")
                 .WithDescription("Select a song to add to a queue, you can select more than one song.")
                 .WithFields(videos.Select(x => new EmbedFieldBuilder().WithName(x.Name).WithValue(x.Url))).Build(),
                 component: new ComponentBuilder().WithSelectMenu(selectMenu).Build()).ConfigureAwait(false);
+
+            if (msg == null)
+                msg = await Context.Interaction.GetOriginalResponseAsync();
 
             try
             {
@@ -249,7 +266,7 @@ namespace LucaasBot.Modules
 
             if (!songs.Any())
             {
-                await Context.Channel.SendErrorAsync("No active music player.").ConfigureAwait(false);
+                await Context.SendErrorAsync("No active music player.").ConfigureAwait(false);
                 return;
             }
 
@@ -319,29 +336,39 @@ namespace LucaasBot.Modules
                 return embed;
             }
 
-            await InteractionService.SendButtonPaginator(Context.Channel, Context.User, page, printAction, songs.Length,
+            await InteractionService.SendButtonPaginator(Context, Context.User, page, printAction, songs.Length,
                 itemsPerPage).ConfigureAwait(false);
         }
 
-        [Command("next"), Alias("n")]
+        [Command("next"), Alias("n", "skip", "s"), RequireDJ]
         public async Task Next(int skipCount = 1)
         {
             if (skipCount < 1)
+            {
+                await Context.SendErrorAsync("Skip count must be greater or equal to 1", true, Context.Message.Reference);
                 return;
+            }
 
+            await Context.DeferAsync();
+            
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
 
             mp.Next(skipCount);
+
+            if (Context.IsInteraction)
+                await Context.Interaction.RespondAsync($"👍 Skipped {skipCount} song{(skipCount > 1 ? "s" : "")}.");
+            else
+                await Context.Message.AddReactionAsync((Emoji)"👍");
         }
 
-        [Command("stop"), Alias("s")]
+        [Command("stop"), Alias("s"), RequireDJ]
         public async Task Stop()
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
             mp.Stop();
         }
 
-        [Command("destroy"), Alias("dc", "leave", "fuckoff")]
+        [Command("destroy"), Alias("dc", "leave", "fuckoff"), RequireDJ]
         public async Task Destroy()
         {
             await MusicService.DestroyPlayer(Context.Guild.Id).ConfigureAwait(false);
@@ -349,10 +376,13 @@ namespace LucaasBot.Modules
             if (Context.Guild.CurrentUser.VoiceChannel != null)
                 await Context.Guild.CurrentUser.ModifyAsync(x => x.Channel = null);
 
-            await Context.Message.AddReactionAsync((Emoji)"👍");
+            if (Context.IsInteraction)
+                await Context.Interaction.RespondAsync("👍");
+            else
+                await Context.Message.AddReactionAsync((Emoji)"👍");
         }
 
-        [Command("pause"), Alias("ps")]
+        [Command("pause"), Alias("ps"), RequireDJ]
         public async Task Pause()
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
@@ -364,10 +394,14 @@ namespace LucaasBot.Modules
             }
 
             mp.Pause();
-            await Context.Message.AddReactionAsync(new Emoji("👍"));
+
+            if (Context.IsInteraction)
+                await Context.Interaction.RespondAsync("👍");
+            else
+                await Context.Message.AddReactionAsync((Emoji)"👍");
         }
 
-        [Command("unpause"), Alias("up")]
+        [Command("unpause"), Alias("up", "resume"), RequireDJ]
         public async Task Unpause()
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
@@ -379,28 +413,35 @@ namespace LucaasBot.Modules
             }
 
             mp.Unpause();
-            await Context.Message.AddReactionAsync(new Emoji("👍"));
+
+            if (Context.IsInteraction)
+                await Context.Interaction.RespondAsync("👍");
+            else
+                await Context.Message.AddReactionAsync((Emoji)"👍");
         }
 
-        [Command("volume"), Alias("v")]
+        [Command("volume"), Alias("v"), RequireDJ]
         public async Task Volume(int val)
         {
-            var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
             if (val < 0 || val > 100)
             {
-                await Context.Channel.SendErrorAsync("Volume must be between 0 and 100").ConfigureAwait(false);
+                await Context.SendErrorAsync("Volume must be between 0 and 100").ConfigureAwait(false);
                 return;
             }
+
+            var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
+
             mp.SetVolume(val);
-            await Context.Channel.SendSuccessAsync($"Volume set to {val}%").ConfigureAwait(false);
+
+            await Context.SendSuccessAsync($"Volume set to {val}%").ConfigureAwait(false);
         }
 
-        [Command("songremove"), Alias("srm"), Priority(1)]
+        [Command("songremove"), Alias("srm", "rm", "qr", "r", "remove"), Priority(1), RequireDJ]
         public async Task SongRemove(int index)
         {
             if (index < 1)
             {
-                await Context.Channel.SendErrorAsync("Song on that index doesn't exist").ConfigureAwait(false);
+                await Context.SendErrorAsync("Song on that index doesn't exist", true).ConfigureAwait(false);
                 return;
             }
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
@@ -413,27 +454,27 @@ namespace LucaasBot.Modules
                             .WithFooter(ef => ef.WithText(song.PrettyInfo))
                             .WithColor(Color.Red);
 
-                await mp.TextChannel.SendMessageAsync(embed: embed.Build()).ConfigureAwait(false);
+                await Context.ReplyAsync(embed: embed.Build()).ConfigureAwait(false);
             }
             catch (ArgumentOutOfRangeException)
             {
-                await Context.Channel.SendErrorAsync("Song on that index doesn't exist").ConfigureAwait(false);
+                await Context.SendErrorAsync("Song on that index doesn't exist").ConfigureAwait(false);
             }
         }
 
         public enum All { All }
        
-        [Command("songremove"), Alias("srm"), Priority(0)]
+        [Command("songremove"), Alias("srm", "rm", "qr", "r", "remove"), Priority(0), RequireDJ]
         public async Task SongRemove(All _)
         {
             var mp = MusicService.GetPlayerOrDefault(Context.Guild.Id);
             if (mp == null)
                 return;
             mp.Stop(true);
-            await Context.Channel.SendSuccessAsync("Music queue cleared.").ConfigureAwait(false);
+            await Context.SendSuccessAsync("Music queue cleared.").ConfigureAwait(false);
         }
 
-        [Command("fairplay"), Alias("fp")]
+        [Command("fairplay"), Alias("fp"), RequireDJ]
         public async Task Fairplay()
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
@@ -457,7 +498,7 @@ namespace LucaasBot.Modules
             await InternalQueue(mp, song, false).ConfigureAwait(false);
         }
 
-        [Command("nowplaying"), Alias("np")]
+        [Command("nowplaying"), Alias("np", "current", "currentlyplaying", "currentsong", "cs")]
         public async Task NowPlaying()
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
@@ -475,7 +516,7 @@ namespace LucaasBot.Modules
             await Context.Channel.SendMessageAsync(embed: embed.Build()).ConfigureAwait(false);
         }
 
-        [Command("shuffle"), Alias("s")]
+        [Command("shuffle"), Alias("sh"), RequireDJ]
         public async Task ShufflePlaylist()
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
@@ -486,7 +527,7 @@ namespace LucaasBot.Modules
                 await Context.Channel.SendSuccessAsync("Songs will no longer shuffle.").ConfigureAwait(false);
         }
 
-        [Command("autoplay"), Alias("ap")]
+        [Command("autoplay"), Alias("ap"), RequireDJ]
         public async Task Autoplay()
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);

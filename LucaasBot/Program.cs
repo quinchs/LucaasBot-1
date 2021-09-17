@@ -10,6 +10,7 @@ using ConvertApiDotNet;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using LucaasBot.Music.Services;
+using LucaasBot.Handlers;
 
 namespace LucaasBot
 {
@@ -33,14 +34,14 @@ namespace LucaasBot
                 LogLevel = LogSeverity.Debug,
                 GatewayIntents = (GatewayIntents)(GatewayIntents.All - GatewayIntents.GuildPresences)
             });
+            
             _client = client;
-
+            var applicationCommandSyncer = new ApplicationCommandCoordinator(client);
             client.Log += LogAsync;
             client.Ready += ReadyAsync;
-            var commandServeice = new CommandService();
-            commandServeice.Log += LogAsync;
+            var commandService = new DualPurposeCommandService();
+            commandService.Log += LogAsync;
             UserService.Initialize(client);
-            commandServeice.Log += LogAsync;
 
             await client.LoginAsync(TokenType.Bot, ConfigService.Config.Token);
             await client.StartAsync();
@@ -50,7 +51,7 @@ namespace LucaasBot
             await _client.SetStatusAsync(UserStatus.Online);
 
             var handlerService = new HandlerService(_client);
-            var commandHandler = new CommandHandler(commandServeice, client);
+            var commandHandler = new CommandHandler(commandService, client);
 
            
 

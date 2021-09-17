@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Audio;
+using Discord.WebSocket;
 using LucaasBot.Music.Buffers;
 using LucaasBot.Music.Services;
 using System;
@@ -51,6 +52,7 @@ namespace LucaasBot.Music.Entities
         private bool manualIndex = false;
         private bool newVoiceChannel = false;
         private readonly GoogleApiService _google;
+        private readonly DiscordSocketClient client;
 
         private bool cancel = false;
 
@@ -111,9 +113,10 @@ namespace LucaasBot.Music.Entities
                     : new TimeSpan(songs.Sum(s => s.TotalTime.Ticks));
             }
         }
-        public MusicPlayer(MusicService musicService, GoogleApiService google,
+        public MusicPlayer(DiscordSocketClient client, MusicService musicService, GoogleApiService google,
             IVoiceChannel vch, ITextChannel original, float volume)
         {
+            this.client = client;
             this.Volume = volume;
             this.VoiceChannel = vch;
             this.TextChannel = original;
@@ -127,6 +130,23 @@ namespace LucaasBot.Music.Entities
                 Priority = ThreadPriority.AboveNormal
             };
             PlayerThread.Start();
+
+            client.UserVoiceStateUpdated += Client_UserVoiceStateUpdated; 
+        }
+
+        private async Task Client_UserVoiceStateUpdated(SocketUser arg1, SocketVoiceState arg2, SocketVoiceState arg3)
+        {
+            if (arg1.Id != client.CurrentUser.Id)
+                return;
+
+            if (arg2.VoiceChannel == null)
+                return;
+
+            if(arg2.VoiceChannel.Id == VoiceChannel.Id && arg3.VoiceChannel != null)
+            {
+                // voice channel moved
+                this.VoiceChannel = arg3.VoiceChannel;
+            }
         }
 
         private async void PlayerLoop()

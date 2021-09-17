@@ -20,6 +20,19 @@ namespace LucaasBot.Modules
             await ReplyAsync("Congrats to <@259053800755691520> and <@790546298306166794> for getting married", messageReference: Context.Message.GetReference(), allowedMentions: new AllowedMentions(AllowedMentionTypes.None));
         }
 
+        [Command("bean"), RequireContext(ContextType.Guild)]
+        public async Task BeanMutherFucker(IGuildUser user, [Remainder] string reason)
+        {
+            await Context.Channel.ModlogAsync(user, Context.User as SocketGuildUser, new DataModels.Modlogs() 
+            { 
+                Action = DataModels.ModlogAction.Beaned, 
+                DateCreated = DateTime.UtcNow,
+                ModID = Context.User.Id,
+                Reason = reason,
+                UserID = user.Id,
+            }, Context.Channel, false);
+        }
+
         [Command("terminate")]
         public async Task TerminateClient()
         {

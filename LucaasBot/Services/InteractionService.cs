@@ -1,4 +1,5 @@
 ﻿using Discord;
+using Discord.Commands;
 using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
@@ -40,10 +41,10 @@ namespace LucaasBot
             return comp;
         }
 
-        public Task SendButtonPaginator(IMessageChannel channel, IUser executer, int currentPage, Func<int, EmbedBuilder> pageFactory, int totalElements, int itemsPerPage)
-            => SendButtonPaginator(channel, executer, currentPage, (Func<int, Task<EmbedBuilder>>)((i) => Task.FromResult(pageFactory(i))), totalElements, itemsPerPage);
+        public Task SendButtonPaginator(ICommandContext context, IUser executer, int currentPage, Func<int, EmbedBuilder> pageFactory, int totalElements, int itemsPerPage, bool ephemeral = false)
+            => SendButtonPaginator(context, executer, currentPage, (Func<int, Task<EmbedBuilder>>)((i) => Task.FromResult(pageFactory(i))), totalElements, itemsPerPage, ephemeral);
 
-        public async Task SendButtonPaginator(IMessageChannel channel, IUser executer, int currentPage, Func<int, Task<EmbedBuilder>> pageFactory, int totalElements, int itemsPerPage)
+        public async Task SendButtonPaginator(ICommandContext context, IUser executer, int currentPage, Func<int, Task<EmbedBuilder>> pageFactory, int totalElements, int itemsPerPage, bool ephemeral = false)
         {
             var embed = await pageFactory(currentPage).ConfigureAwait(false);
             var lastPage = (totalElements - 1) / itemsPerPage;
@@ -54,7 +55,15 @@ namespace LucaasBot
                 .WithButton(customId: "page-left",  emote: new Emoji("⬅"))
                 .WithButton(customId: "page-right", emote: new Emoji("➡"));
 
-            var msg = await channel.SendMessageAsync(embed: embed.Build(), component: components.Build());
+            IUserMessage msg;
+
+            if(context is DualPurposeContext dContext)
+            {
+                await dContext.ReplyAsync(embed: embed.Build(), component: components.Build(), ephemeral: ephemeral);
+                msg = await dContext.Interaction.GetOriginalResponseAsync();
+            }    
+            else
+                msg = await context.Channel.SendMessageAsync(embed: embed.Build(), component: components.Build());
 
             var lastPageChange = DateTime.MinValue;
 
@@ -66,6 +75,7 @@ namespace LucaasBot
                         return;
                     if (DateTime.UtcNow - lastPageChange < TimeSpan.FromSeconds(1))
                         return;
+
                     if (comp.Data.CustomId == "page-left")
                     {
                         if (currentPage == 0)
@@ -73,7 +83,7 @@ namespace LucaasBot
                         lastPageChange = DateTime.UtcNow;
                         var toSend = await pageFactory(--currentPage).ConfigureAwait(false);
                         toSend.AddPaginatedFooter(currentPage, lastPage);
-                        await msg.ModifyAsync(x => x.Embed = toSend.Build()).ConfigureAwait(false);
+                        await comp.UpdateAsync(x => x.Embed = toSend.Build()).ConfigureAwait(false);
                     }
                     else if (comp.Data.CustomId == "page-right")
                     {
@@ -82,7 +92,7 @@ namespace LucaasBot
                             lastPageChange = DateTime.UtcNow;
                             var toSend = await pageFactory(++currentPage).ConfigureAwait(false);
                             toSend.AddPaginatedFooter(currentPage, lastPage);
-                            await msg.ModifyAsync(x => x.Embed = toSend.Build()).ConfigureAwait(false);
+                            await comp.UpdateAsync(x => x.Embed = toSend.Build()).ConfigureAwait(false);
                         }
                     }
                 }

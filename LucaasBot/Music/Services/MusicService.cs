@@ -59,7 +59,7 @@ namespace LucaasBot.Music.Services
             {
                 var vol = DefaultMusicVolume;
                 
-                var mp = new MusicPlayer(this, Google, voiceCh, textCh, vol);
+                var mp = new MusicPlayer(_client, this, Google, voiceCh, textCh, vol);
 
                 IUserMessage playingMessage = null;
                 IUserMessage lastFinishedMessage = null;
@@ -109,29 +109,6 @@ namespace LucaasBot.Music.Services
                             .WithDescription(song.Song.PrettyName)
                             .WithFooter(ef => ef.WithText(mp.PrettyVolume + " | " + song.Song.PrettyInfo)).Build())
                             .ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                        // ignored
-                    }
-                };
-                mp.OnPauseChanged += async (player, paused) =>
-                {
-                    try
-                    {
-                        IUserMessage msg;
-                        if (paused)
-                            msg = await mp.TextChannel.SendMessageAsync(embed: new EmbedBuilder()
-                                .WithColor(Color.Orange)
-                                .WithDescription("Music playback paused.")
-                                .Build()).ConfigureAwait(false);
-                        else
-                            msg = await mp.TextChannel.SendMessageAsync(embed: new EmbedBuilder()
-                                .WithColor(Color.Green)
-                                .WithDescription("Music playback resumed.")
-                                .Build()).ConfigureAwait(false);
-
-                        msg?.DeleteAfter(10);
                     }
                     catch
                     {

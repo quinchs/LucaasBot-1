@@ -20,7 +20,8 @@ namespace LucaasBot
         Critical,
         Core,
         Verbose,
-        Music
+        Music,
+        CommandService
     }
     public class Logger
     {
@@ -135,7 +136,8 @@ namespace LucaasBot
             { Severity.Socket, ConsoleColor.Blue },
             { Severity.Rest, ConsoleColor.Magenta },
             { Severity.Verbose, ConsoleColor.DarkCyan },
-            { Severity.Music, ConsoleColor.DarkMagenta }
+            { Severity.Music, ConsoleColor.DarkMagenta },
+            { Severity.CommandService, ConsoleColor.DarkBlue }
         };
 
         private static void HandleQueueWrite()
