@@ -22,8 +22,6 @@ namespace LucaasBot
         static void Main(string[] args)
         {
             ConfigService.LoadConfig();
-            var log = File.Open("./log.txt", FileMode.OpenOrCreate, FileAccess.ReadWrite);
-
             new Program().MainAsync().GetAwaiter().GetResult();
         }
 
