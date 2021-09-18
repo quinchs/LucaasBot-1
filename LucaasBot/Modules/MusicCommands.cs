@@ -22,6 +22,16 @@ namespace LucaasBot.Modules
         public InteractionService InteractionService
             => HandlerService.GetHandlerInstance<InteractionService>();
 
+        public bool CanUseLockedCommands
+            => ((Context.User as IGuildUser).RoleIds.Any(x =>
+                    x == 639547493767446538 || // dev
+                    x == 563030072026595339 || // staff
+                    x == 620312075863851039))  // dj )
+              || (Context.User as SocketGuildUser)?.VoiceChannel.Users.Count <= 2;
+
+        public bool InVoiceChannel
+            => (Context.User as SocketGuildUser).VoiceChannel != null;
+
         private async Task InternalQueue(MusicPlayer mp, SongInfo songInfo, bool silent, bool queueFirst = false, bool forcePlay = false)
         {
             if (songInfo == null)
@@ -63,7 +73,7 @@ namespace LucaasBot.Modules
                             await Context.ReplyAsync(embed: embed.Build()).ConfigureAwait(false);
                         if (mp.Stopped)
                         {
-                            await Context.Channel.SendErrorAsync("Player is stopped. Use =play command to start playing.").ConfigureAwait(false);
+                            await Context.SendErrorAsync("Player is stopped. Use =play command to start playing.").ConfigureAwait(false);
                         }
                     }
                     catch
@@ -76,7 +86,7 @@ namespace LucaasBot.Modules
         private async Task InternalPlay(string query, bool forceplay)
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
-            var songInfo = await MusicService.ResolveSong(query, Context.User.ToString()).ConfigureAwait(false);
+            var songInfo = await MusicService.ResolveSong(query, Context.User).ConfigureAwait(false);
             try { await InternalQueue(mp, songInfo, false, forcePlay: forceplay).ConfigureAwait(false); } catch (QueueFullException) { return; }
         }
 
@@ -93,7 +103,7 @@ namespace LucaasBot.Modules
                     return;
                 }
 
-                await Context.SendErrorAsync("Please specify a name or url of a song", true, Context.Message.Reference);
+                await Context.SendErrorAsync("Please specify a name or url of a song", true, Context.Message?.Reference);
             }
             else if (int.TryParse(query, out var index))
                 if (index >= 1)
@@ -152,7 +162,7 @@ namespace LucaasBot.Modules
 
             foreach(var item in goodFiles)
             {
-                var song = await MusicService.ResolveSong(item, Context.User.ToString(), MusicType.Local).ConfigureAwait(false);
+                var song = await MusicService.ResolveSong(item, Context.User, MusicType.Local).ConfigureAwait(false);
                 await InternalQueue(mp, song, true).ConfigureAwait(false);
             }
 
@@ -174,7 +184,7 @@ namespace LucaasBot.Modules
             await Context.Channel.SendMessageAsync(embed: embed.Build());
         }
 
-        [Command("join", RunMode = RunMode.Async), Alias("j")]
+        [Command("join", RunMode = RunMode.Async), Alias("j"), RequireDJ]
         public async Task Join()
         {
             var vc = (Context.User as SocketGuildUser).VoiceChannel;
@@ -195,18 +205,23 @@ namespace LucaasBot.Modules
         }
 
         [Command("queue"), Alias("q")]
-        public Task Queue([Remainder] string query)
+        public async Task Queue([Remainder] string query = null)
         {
             if (query == null)
-                return ListQueue();
-            return InternalPlay(query, forceplay: false);
+            {
+                await ListQueue();
+                return;
+            }    
+
+            await Context.DeferAsync();
+            await InternalPlay(query, forceplay: false);
         }
 
         [Command("queuenext"), Alias("qn", "queue-next"), RequireDJ]
         public async Task QueueNext([Remainder] string query)
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
-            var songInfo = await MusicService.ResolveSong(query, Context.User.ToString()).ConfigureAwait(false);
+            var songInfo = await MusicService.ResolveSong(query, Context.User).ConfigureAwait(false);
             try { await InternalQueue(mp, songInfo, false, true).ConfigureAwait(false); } catch (QueueFullException) { return; }
         }
 
@@ -257,7 +272,7 @@ namespace LucaasBot.Modules
 
                 var queries = comp.Data.Values.Select(x => int.Parse(x)).Select(x => videos[x].Url);
 
-                var tasks = queries.Select(x => MusicService.ResolveSong(query, Context.User.ToString()));
+                var tasks = queries.Select(x => MusicService.ResolveSong(query, Context.User));
 
                 await comp.DeferAsync();
 
@@ -369,23 +384,77 @@ namespace LucaasBot.Modules
                 itemsPerPage).ConfigureAwait(false);
         }
 
-        [Command("next"), Alias("n", "skip", "s"), RequireDJ]
+        [Command("next"), Alias("n", "skip", "s")]
         public async Task Next(int skipCount = 1)
         {
-            if (skipCount < 1)
+            var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
+
+            if (!CanUseLockedCommands && InVoiceChannel)
+            {
+                int users = (Context.User as SocketGuildUser).VoiceChannel.Users.Count(x => !x.IsBot);
+
+                // 51% of users are requred to vote
+
+                int required = checked(Convert.ToInt32(Math.Ceiling(users * 0.51d)));
+
+                if (users == required && users != 2)
+                {
+                    await Skip(skipCount, mp);
+                    return;
+                }
+
+                var embed = new EmbedBuilder()
+                    .WithAuthor($"{Context.User} has started a vote!", Context.User.GetAvatarUrl() ?? Context.User.GetDefaultAvatarUrl())
+                    .WithColor(Color.Green)
+                    .WithDescription($"{Context.User.Username} want's to vote to skip {mp.Current.Current.PrettyName}")
+                    .AddField("Voters", Context.User.Mention)
+                    .WithFooter($"1/{required} votes");
+
+                void OnChange(int cur, List<IGuildUser> voters, EmbedBuilder builder)
+                {
+                    builder.Fields[0].Value = $"{string.Join("\n", voters.Select(x => x.Mention))}";
+                    builder.Footer.Text = $"{cur}/{required} votes";
+                };
+
+                await InteractionService.CreateVoteComponentsAsync(Context, embed, Context.User as SocketGuildUser, required, OnChange, async (msg) => 
+                {
+                    var completeEmbed = new EmbedBuilder()
+                        .WithAuthor($"{Context.User} has started a vote!", Context.User.GetAvatarUrl() ?? Context.User.GetDefaultAvatarUrl())
+                        .WithColor(Color.Green)
+                        .WithDescription($"Vote complete!")
+                        .WithFooter($"{required}/{required} votes");
+
+                    await msg.ModifyAsync(x => 
+                    {
+                        var btn = ((msg.Components.First() as ActionRowComponent).Components.First() as ButtonComponent).ToBuilder();
+
+                        x.Embed = completeEmbed.Build();
+                        x.Components = new ComponentBuilder()
+                            .WithButton(btn.WithDisabled(true))
+                            .Build();
+                    });
+
+                    await Skip(skipCount, mp);
+                });
+            }
+            else
+                await Skip(skipCount, mp);
+        }
+
+        private async Task Skip(int sk, MusicPlayer mp)
+        {
+            if (sk < 1)
             {
                 await Context.SendErrorAsync("Skip count must be greater or equal to 1", true, Context.Message.Reference);
                 return;
             }
 
             await Context.DeferAsync();
-            
-            var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
 
-            mp.Next(skipCount);
+            mp.Next(sk);
 
             if (Context.IsInteraction)
-                await Context.Interaction.RespondAsync($"👍 Skipped {skipCount} song{(skipCount > 1 ? "s" : "")}.");
+                await Context.Interaction.RespondAsync($"👍 Skipped {sk} song{(sk > 1 ? "s" : "")}.");
             else
                 await Context.Message.AddReactionAsync((Emoji)"👍");
         }
@@ -405,7 +474,10 @@ namespace LucaasBot.Modules
             await MusicService.DestroyPlayer(Context.Guild.Id).ConfigureAwait(false);
 
             if (Context.Guild.CurrentUser.VoiceChannel != null)
+            {
                 await Context.Guild.CurrentUser.ModifyAsync(x => x.Channel = null);
+                await Context.Guild.CurrentUser.VoiceChannel.DisconnectAsync();
+            }
 
             if (Context.IsInteraction)
                 await Context.Interaction.RespondAsync("👍");
@@ -467,15 +539,82 @@ namespace LucaasBot.Modules
             await Context.SendSuccessAsync($"Volume set to {value}%").ConfigureAwait(false);
         }
 
-        [Command("songremove"), Alias("srm", "rm", "qr", "r", "remove"), Priority(1), RequireDJ]
+        [Command("songremove"), Alias("srm", "rm", "qr", "r", "remove", "remove-song"), Priority(1)]
         public async Task SongRemove(int index)
         {
+            var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
+
             if (index < 1)
             {
                 await Context.SendErrorAsync("Song on that index doesn't exist", true).ConfigureAwait(false);
                 return;
             }
-            var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
+
+            if (!CanUseLockedCommands && InVoiceChannel)
+            {
+                int users = (Context.User as SocketGuildUser).VoiceChannel.Users.Count(x => !x.IsBot);
+
+                // 51% of users are requred to vote
+
+                int required = checked(Convert.ToInt32(Math.Ceiling(users * 0.51d)));
+
+                if (users <= required && users != 2)
+                {
+                    await SongRemoveInternal(index, mp);
+                    return;
+                }
+
+                var currentSongs = mp.QueueArray();
+
+                if(currentSongs.Songs.Length <= index)
+                {
+                    await Context.ReplyAsync($"No song at index #{index}", ephemeral: true);
+                    return;
+                }
+
+                var song = currentSongs.Songs[index];
+
+                var embed = new EmbedBuilder()
+                    .WithAuthor($"{Context.User} has started a vote!", Context.User.GetAvatarUrl() ?? Context.User.GetDefaultAvatarUrl())
+                    .WithColor(Color.Orange)
+                    .WithDescription($"{Context.User.Username} want's to vote to remove the song {song.PrettyName}")
+                    .AddField("Voters", Context.User.Mention)
+                    .WithFooter($"1/{required} votes");
+
+                void OnChange(int cur, List<IGuildUser> voters, EmbedBuilder builder)
+                {
+                    builder.Fields[0].Value = $"{string.Join("\n", voters.Select(x => x.Mention))}";
+                    builder.Footer.Text = $"{cur}/{required} votes";
+                };
+
+                await InteractionService.CreateVoteComponentsAsync(Context, embed, Context.User as SocketGuildUser, required, OnChange, async (msg) =>
+                {
+                    var completeEmbed = new EmbedBuilder()
+                        .WithAuthor($"{Context.User} has started a vote!", Context.User.GetAvatarUrl() ?? Context.User.GetDefaultAvatarUrl())
+                        .WithColor(Color.Orange)
+                        .WithDescription($"Vote complete!")
+                        .WithFooter($"{required}/{required} votes");
+
+                    await msg.ModifyAsync(x =>
+                    {
+                        var btn = ((msg.Components.First() as ActionRowComponent).Components.First() as ButtonComponent).ToBuilder();
+
+                        x.Embed = completeEmbed.Build();
+                        x.Components = new ComponentBuilder()
+                            .WithButton(btn.WithDisabled(true))
+                            .Build();
+                    });
+
+                    await SongRemoveInternal(index, mp);
+                });
+            }
+            else
+                await SongRemoveInternal(index, mp);
+        }
+
+        private async Task SongRemoveInternal(int index, MusicPlayer mp)
+        {
+            
             try
             {
                 var song = mp.RemoveAt(index - 1);
@@ -521,12 +660,13 @@ namespace LucaasBot.Modules
             }
         }
 
-        [Command("soundcloudqueue"), Alias("sq")]
+        // depricated because of soundcloud api
+        //[Command("soundcloudqueue"), Alias("sq")]
         public async Task SoundCloudQueue([Remainder] string query)
         {
             await Context.DeferAsync();
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
-            var song = await MusicService.ResolveSong(query, Context.User.ToString(), MusicType.Soundcloud).ConfigureAwait(false);
+            var song = await MusicService.ResolveSong(query, Context.User, MusicType.Soundcloud).ConfigureAwait(false);
             await InternalQueue(mp, song, false).ConfigureAwait(false);
         }
 
@@ -546,7 +686,7 @@ namespace LucaasBot.Modules
                             .WithAuthor(eab => eab.WithName("Now playing").WithMusicIcon())
                             .WithDescription(currentSong.PrettyName)
                             .WithThumbnailUrl(currentSong.Thumbnail)
-                            .WithFooter(ef => ef.WithText(mp.PrettyVolume + " | " + mp.PrettyFullTime + $" | {currentSong.PrettyProvider} | {currentSong.QueuerName}"));
+                            .WithFooter(ef => ef.WithText(mp.PrettyVolume + " | " + mp.PrettyFullTime + $" | {currentSong.PrettyProvider} | {currentSong.Queuer.Username}"));
 
             await Context.ReplyAsync(embed: embed.Build()).ConfigureAwait(false);
         }

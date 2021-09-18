@@ -25,7 +25,7 @@ namespace LucaasBot.Music.Services
         private SoundCloudApiService _sc;
         private DiscordSocketClient _client;
 
-        public override void Initialize(DiscordSocketClient client)
+        public override async Task InitializeAsync(DiscordSocketClient client)
         {
             _client = client;
             _sc = new SoundCloudApiService();
@@ -33,6 +33,20 @@ namespace LucaasBot.Music.Services
 
             try { Directory.Delete(MusicDataPath, true); } catch { }
             Directory.CreateDirectory(MusicDataPath);
+
+            _ = Task.Run(async () => await PrecheckVoiceState());
+        }
+
+        private async Task PrecheckVoiceState()
+        {
+            // since when the bot restarts and the bot is in a voice channel the player freaks out and dies. Lets just dc ourself if were in a voice channel
+            var currentUser = _client.GetGuild(464733888447643650).CurrentUser;
+
+            if (currentUser.VoiceChannel != null)
+            {
+                await currentUser.VoiceChannel.DisconnectAsync();
+                await currentUser.ModifyAsync(x => x.Channel = null);
+            }
         }
 
         public Task<MusicPlayer> GetOrCreatePlayer(ICommandContext context)
@@ -107,7 +121,7 @@ namespace LucaasBot.Music.Services
                         playingMessage = await mp.TextChannel.SendMessageAsync(embed: new EmbedBuilder().WithColor(Color.Green)
                             .WithAuthor(eab => eab.WithName($"Playing song #{song.Index + 1}").WithMusicIcon())
                             .WithDescription(song.Song.PrettyName)
-                            .WithFooter(ef => ef.WithText(mp.PrettyVolume + " | " + song.Song.PrettyInfo)).Build())
+                            .WithFooter(mp.PrettyVolume + " | " + song.Song.PrettyInfo, song.Song.Queuer.GetAvatarUrl() ?? song.Song.Queuer.GetDefaultAvatarUrl()).Build())
                             .ConfigureAwait(false);
                     }
                     catch
@@ -140,14 +154,14 @@ namespace LucaasBot.Music.Services
             if (!related.Any())
                 return;
 
-            var si = await ResolveSong(related[new Random().Next(related.Length)], _client.CurrentUser.ToString(), MusicType.YouTube).ConfigureAwait(false);
+            var si = await ResolveSong(related[new Random().Next(related.Length)], _client.CurrentUser, MusicType.YouTube).ConfigureAwait(false);
             if (si == null)
                 throw new SongNotFoundException();
             var mp = await GetOrCreatePlayer(txtCh.GuildId, vch, txtCh, null).ConfigureAwait(false);
             mp.Enqueue(si);
         }
 
-        public async Task<SongInfo> ResolveSong(string query, string queuerName, MusicType? musicType = null)
+        public async Task<SongInfo> ResolveSong(string query, IUser queuer, MusicType? musicType = null)
         {
             if (string.IsNullOrEmpty(query))
                 throw new ArgumentNullException(nameof(query));
@@ -159,7 +173,7 @@ namespace LucaasBot.Music.Services
             if (sinfo == null)
                 return null;
 
-            sinfo.QueuerName = queuerName;
+            sinfo.Queuer = queuer;
 
             return sinfo;
         }
@@ -177,7 +191,5 @@ namespace LucaasBot.Music.Services
             if (MusicPlayers.TryRemove(id, out var mp))
                 await mp.Destroy().ConfigureAwait(false);
         }
-
-        
     }
 }

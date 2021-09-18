@@ -25,14 +25,16 @@ namespace LucaasBot.Music.Entities
         public string Title { get; set; }
         public Func<Task<string>> Uri { get; set; }
         public string Thumbnail { get; set; }
-        public string QueuerName { get; set; }
+        public IUser Queuer { get; set; }
+        public string QueuerName
+            => Queuer.Username;
         public TimeSpan TotalTime { get; set; } = TimeSpan.Zero;
 
         public string PrettyProvider => (Provider ?? "???");
         //public string PrettyFullTime => PrettyCurrentTime + " / " + PrettyTotalTime;
         public string PrettyName => $"**[{Title.TrimTo(65)}]({SongUrl})**";
-        public string PrettyInfo => $"{PrettyTotalTime} | {PrettyProvider} | {QueuerName}";
-        public string PrettyFullName => $"{PrettyName}\n\t\t`{PrettyTotalTime} | {PrettyProvider} | {Format.Sanitize(QueuerName.TrimTo(15))}`";
+        public string PrettyInfo => $"{PrettyTotalTime} | {PrettyProvider} | {Queuer.Username}";
+        public string PrettyFullName => $"{PrettyName}\n\t\t`{PrettyTotalTime} | {PrettyProvider} | {Format.Sanitize(Queuer.Username.TrimTo(15))}`";
         public string PrettyTotalTime
         {
             get

@@ -250,6 +250,10 @@ namespace LucaasBot.Music.Entities
                             await ((PauseTaskSource?.Task ?? Task.CompletedTask).ConfigureAwait(false));
                         }
                     }
+                    catch (TaskCanceledException)
+                    {
+                        await TextChannel.SendErrorAsync("Failed to play current song because the bot restarted within a text channel.\nPlease try again.");
+                    }
                     catch (OperationCanceledException)
                     {
                         Logger.Log("Song Canceled", Severity.Music);
@@ -394,7 +398,7 @@ namespace LucaasBot.Music.Entities
             }
         }
 
-        private async Task<IAudioClient> GetAudioClient(bool reconnect = false)
+        private async Task<IAudioClient> GetAudioClient(bool reconnect = false, bool isRedo = false)
         {
             if (_audioClient == null ||
                 _audioClient.ConnectionState != ConnectionState.Connected ||
@@ -423,11 +427,24 @@ namespace LucaasBot.Music.Entities
                     var curUser = await VoiceChannel.Guild.GetCurrentUserAsync().ConfigureAwait(false);
                     
                     Logger.Log("Connecting", Severity.Music);
+
+                    if(curUser.VoiceChannel != null)
+                    {
+                        var ac = await VoiceChannel.ConnectAsync(true).ConfigureAwait(false);
+                        await ac.StopAsync();
+                    }
+
                     _audioClient = await VoiceChannel.ConnectAsync(true).ConfigureAwait(false);
+                }
+                catch (TaskCanceledException x)
+                {
+                    // fired when already in a voice channel and this instance just started up.
+                    Logger.Warn(x, Severity.Music);
+                    throw;
                 }
                 catch(Exception x)
                 {
-                    Logger.Warn(x, Severity.Music);
+                    Logger.Error(x, Severity.Music);
                     return null;
                 }
             return _audioClient;

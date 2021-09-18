@@ -41,6 +41,60 @@ namespace LucaasBot
             return comp;
         }
 
+        public async Task CreateVoteComponentsAsync(ICommandContext context, EmbedBuilder builder, IGuildUser executer, int targetVotes, Action<int, List<IGuildUser>, EmbedBuilder> onChange, Func<IUserMessage, Task> onComplete, string buttonText = "Vote")
+        {
+            var cid = $"vote-{Guid.NewGuid()}";
+
+            int currentVotes = 1;
+
+            List<IGuildUser> voters = new();
+
+            voters.Add(executer);
+
+            var components = new ComponentBuilder()
+                .WithButton(buttonText, cid, ButtonStyle.Primary, Emote.Parse("<:upvote:618159115608391709>"));
+
+            IUserMessage message = null;
+
+            async Task HandleButtonClick(SocketMessageComponent comp)
+            {
+                if (comp.Data.CustomId != cid)
+                    return;
+
+                if(voters.Any(x => x.Id == comp.User.Id))
+                {
+                    await comp.RespondAsync("You have already voted to skip!", ephemeral: true);
+                    return;
+                }
+
+                await comp.DeferAsync();
+                
+                voters.Add(comp.User as SocketGuildUser);
+                currentVotes++;
+
+                if(currentVotes >= targetVotes)
+                {
+                    await onComplete(message);
+                }
+                else
+                {
+                    onChange(currentVotes, voters, builder);
+
+                    await comp.UpdateAsync(x => x.Embed = builder.Build());
+                }
+            }
+
+            if (context is DualPurposeContext dContext && dContext.IsInteraction)
+            {
+                await dContext.Interaction.RespondAsync(embed: builder.Build(), component: components.Build());
+                message = await dContext.Interaction.GetOriginalResponseAsync();
+            }
+            else
+                message = await context.Channel.SendMessageAsync(embed: builder.Build(), component: components.Build());
+
+            client.ButtonExecuted += HandleButtonClick;
+        }
+
         public Task SendButtonPaginator(ICommandContext context, IUser executer, int currentPage, Func<int, EmbedBuilder> pageFactory, int totalElements, int itemsPerPage, bool ephemeral = false)
             => SendButtonPaginator(context, executer, currentPage, (Func<int, Task<EmbedBuilder>>)((i) => Task.FromResult(pageFactory(i))), totalElements, itemsPerPage, ephemeral);
 
@@ -57,7 +111,7 @@ namespace LucaasBot
 
             IUserMessage msg;
 
-            if(context is DualPurposeContext dContext)
+            if(context is DualPurposeContext dContext && dContext.IsInteraction)
             {
                 await dContext.ReplyAsync(embed: embed.Build(), component: components.Build(), ephemeral: ephemeral);
                 msg = await dContext.Interaction.GetOriginalResponseAsync();

@@ -19,7 +19,7 @@ namespace LucaasBot.Modules
             "skip",
             "volume",
             "fairplay",
-            "queuenext",
+            "queue-next",
             "disconnect",
             "remove-song",
             "stop",
@@ -33,7 +33,7 @@ namespace LucaasBot.Modules
             var play = new SlashCommandBuilder()
                 .WithName("play")
                 .WithDescription("Plays a song given a name, youtube url, spotify url, or soundcloud.")
-                .AddOption("query", ApplicationCommandOptionType.String, "The link or name of the song.", false)
+                .AddOption("query", ApplicationCommandOptionType.String, "The link or name of the song.", true)
                 .Build();
 
             var join = new SlashCommandBuilder()
@@ -117,13 +117,15 @@ namespace LucaasBot.Modules
             var removesong = new SlashCommandBuilder()
                 .WithName("remove-song")
                 .WithDefaultPermission(false)
-                .WithDescription("removes a song from the queue")
+                .WithDescription("Removes a song from the queue")
+                .AddOption("index", ApplicationCommandOptionType.Integer, "The index of the song to remove.")
                 .Build();
 
-            var soundcloundq = new SlashCommandBuilder()
-                .WithName("soundcloud-queue")
-                .WithDescription("Plays a song from soundcloud.")
-                .Build();
+            // depricated because of soundcloud api
+            //var soundcloundq = new SlashCommandBuilder()
+            //    .WithName("soundcloud-queue")
+            //    .WithDescription("Plays a song from soundcloud.")
+            //    .Build();
 
             var fairplay = new SlashCommandBuilder()
                 .WithName("fairplay")
@@ -145,7 +147,7 @@ namespace LucaasBot.Modules
                 queuenext,
                 nowplaying,
                 fairplay,
-                soundcloundq,
+                //soundcloundq,
                 removesong,
                 volume,
                 resume,
@@ -175,26 +177,6 @@ namespace LucaasBot.Modules
             ));
 
             MusicCommands.AddRange(commands.Select(x => x.Name));
-        }
-    }
-
-    public class MusicSlashCommands : DiscordHandler
-    {
-
-        private DiscordSocketClient client;
-        public override void Initialize(DiscordSocketClient client)
-        {
-            this.client = client;
-
-            client.SlashCommandExecuted += Client_SlashCommandExecuted;
-        }
-
-        private async Task Client_SlashCommandExecuted(SocketSlashCommand arg)
-        {
-            if (MusicSlashCommandsFactory.MusicCommands.Contains(arg.Data.Name))
-            {
-                
-            }
         }
     }
 }

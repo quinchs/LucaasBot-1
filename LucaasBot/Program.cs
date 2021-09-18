@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using LucaasBot.Music.Services;
 using LucaasBot.Handlers;
+using System.IO;
 
 namespace LucaasBot
 {
@@ -21,6 +22,8 @@ namespace LucaasBot
         static void Main(string[] args)
         {
             ConfigService.LoadConfig();
+            var log = File.Open("./log.txt", FileMode.OpenOrCreate, FileAccess.ReadWrite);
+
             new Program().MainAsync().GetAwaiter().GetResult();
         }
 
@@ -58,8 +61,9 @@ namespace LucaasBot
 
         private Task LogAsync(LogMessage log)
         {
-            if (log.Source.StartsWith("Audio ") && (log.Message?.StartsWith("Sent") ?? false) || 
-               (log.Source.StartsWith("Audio ") && (log.Message?.StartsWith("Buffer underrun") ?? false)))
+            var msg = log.Message;
+
+            if (log.Source.StartsWith("Audio ") && (msg?.StartsWith("Sent") ?? false))
                 return Task.CompletedTask;
 
             Severity? sev = null;

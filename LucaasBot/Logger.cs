@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -42,10 +43,31 @@ namespace LucaasBot
 
         private static ConcurrentQueue<KeyValuePair<object, Severity[]>> _queue = new ConcurrentQueue<KeyValuePair<object, Severity[]>>();
         private static event EventHandler<(object data, Severity[] sev)> _logEvent;
+        private static string _prevLine = "";
+        private static int _prevCount = 1;
+
+        private static List<StreamWriter> _streams = new List<StreamWriter>();
+
+        private static object lockObj = new object();
+
+        public static void AddStreamSource(Stream stream)
+        {
+            if (stream == null)
+                throw new ArgumentNullException(nameof(stream));
+
+            if (!stream.CanWrite)
+                throw new ArgumentException("Stream is closed or cannot be written to", nameof(stream));
+
+            var writer = new StreamWriter(stream);
+
+            _streams.Add(writer);
+        }
 
         static Logger()
         {
             _logEvent += Logger__logEvent;
+
+            _streams.Add(new StreamWriter(Console.OpenStandardOutput()));
         }
 
         private static void Logger__logEvent(object sender, (object data, Severity[] sev) e)
@@ -57,9 +79,6 @@ namespace LucaasBot
                 HandleQueueWrite();
             }
         }
-
-        
-        
 
         static bool inProg = false;
         private static Regex ColorRegex = new Regex(@"<(.*)>(.*?)<\/\1>");
@@ -112,6 +131,16 @@ namespace LucaasBot
 
             return returnData;
         }
+
+        private static void WriteToStreams(string str)
+        {
+            foreach (var stream in _streams)
+            {
+                stream.Write(str);
+                stream.Flush();
+            }
+        }
+
         private static ConsoleColor? GetColor(string tag)
         {
             if (Enum.TryParse(typeof(ConsoleColor), tag, true, out var res))
@@ -160,20 +189,46 @@ namespace LucaasBot
 
                     var items = ProcessColors($"\u001b[38;5;249m{DateTime.UtcNow.ToString("O")} " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - \u001b[37;1m{data}");
 
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    lock (lockObj)
                     {
-                        Console.Write($"{string.Join("", items.Select(item => $"{ConsoleColorToANSI(item.color)}{item.value}\u001b[0m"))}");
-                    }
-                    else
-                    {
-                        foreach (var item in items)
+                        var rawVal = string.Join("", items.Select(x => x.value)).Remove(0, 44);
+
+                        if (_prevLine == rawVal)
                         {
-                            Console.ForegroundColor = item.color;
-                            Console.Write(item.value);
+                            // move left then up
+                            WriteToStreams("\u001b[1000D"); // left
+                            WriteToStreams("\u001b[1A"); // up
+                            _prevCount++;
+
                         }
+                        else if (_prevCount != 1)
+                        {
+                            _prevCount = 1;
+                        }
+
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                        {
+                            WriteToStreams($"{string.Join("", items.Select(item => $"{ConsoleColorToANSI(item.color)}{item.value}\u001b[0m"))} {(_prevCount != 1 ? $"\u001b[38;5;11mx{_prevCount}" : "")}");
+                        }
+                        else
+                        {
+                            foreach (var item in items)
+                            {
+                                Console.ForegroundColor = item.color;
+                                WriteToStreams(item.value);
+                            }
+
+                            if (_prevCount != 1)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Yellow;
+                                WriteToStreams($"x{_prevCount}");
+                            }
+                        }
+
+                        _prevLine = rawVal;
                     }
 
-                    Console.Write("\n");
+                    WriteToStreams("\n");
                 }
             }
             inProg = false;
