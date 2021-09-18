@@ -44,6 +44,8 @@ namespace LucaasBot.Handlers
 
             _client.MessageReceived += AutoModMsgRecieved;
 
+            _client.SlashCommandExecuted += _client_SlashCommandExecuted;
+
             //_client.UserVoiceStateUpdated += VoiceStateUpdate;
 
             _client.GuildMemberUpdated += GuildMemberUpdated;
@@ -61,88 +63,13 @@ namespace LucaasBot.Handlers
             Logger.Write("Command handler <Green>Initialized</Green>", Severity.Core);
         }
 
+        private async Task _client_SlashCommandExecuted(SocketSlashCommand arg)
+        {
+            var context = new DualPurposeContext(_client, arg);
+            await _commands.ExecuteAsync(context, arg.Data.Name, null);
+        }
+
         private Dictionary<ulong, (int messageCount, ulong channelId)> channelMessageCount = new Dictionary<ulong, (int messageCount, ulong channelId)>();
-
-        //private async Task InteractionCreated(SocketInteraction arg)
-        //{
-        //    // If the type of the interaction is a message component
-        //    if (arg.Type == Discord.InteractionType.MessageComponent)
-        //    {
-        //        // parse the args 
-        //        var parsedArg = (SocketMessageComponent)arg;
-        //        var userAccount = (SocketGuildUser)parsedArg.User;
-        //        var channel = (SocketTextChannel)parsedArg.Channel;
-        //        var msg = (SocketUserMessage)parsedArg.Message;
-
-        //        if (parsedArg.Data.CustomId.StartsWith($"unmute_"))
-        //        {
-        //            ulong userid = ulong.Parse(parsedArg.Data.CustomId.Replace("unmute_", ""));
-        //            //ulong userid = ulong.Parse(parsedArg.Data.CustomId.Replace();
-        //            var guild = _client.GetGuild(guildId);
-        //            var user = guild.GetUser(userid);
-        //            var muted = guild.GetRole(465097693379690497);
-        //            var staffRole = guild.GetRole(563030072026595339);
-        //            var devRole = guild.GetRole(639547493767446538);
-
-        //            if (!user.Roles.Contains(muted))
-        //            {
-        //                return;
-        //            }
-
-        //            if (userAccount.Roles.Contains(staffRole) || userAccount.Roles.Contains(devRole))
-        //            {
-        //                await user.RemoveRoleAsync(muted);
-        //                await parsedArg.Channel.SendSuccessAsync($"Unmuted {user.Mention}", $"Unmuted by {parsedArg.User}");
-        //                //await RemoveButton(parsedArg, msg);
-        //                return;
-        //            }                   
-        //        }
-
-        //        if (parsedArg.Data.CustomId == "cancelSlow")
-        //        {
-        //            var guild = _client.GetGuild(guildId);
-        //            var staffRole = guild.GetRole(563030072026595339);
-        //            var devRole = guild.GetRole(639547493767446538);
-
-        //            if (channel.SlowModeInterval == 0)
-        //            {
-        //                return;
-        //            }
-
-        //            if (userAccount.Roles.Contains(staffRole) || userAccount.Roles.Contains(devRole))
-        //            {
-        //                await channel.ModifyAsync(x =>
-        //                {
-        //                    x.SlowModeInterval = 0;
-        //                });
-        //                await parsedArg.Channel.SendSuccessAsync($"Set slowmode to `0`", $"Action by {parsedArg.User}");
-
-        //                //await RemoveButton(parsedArg, msg);
-        //                return;
-        //            }                     
-        //        }
-        //        // respond with the update message response type. This edits the original message if you have set AlwaysAcknowledgeInteractions to false.
-        //        //await parsedArg.RespondAsync($"Clicked {parsedArg.Data.CustomId}!", type: InteractionResponseType.UpdateMessage);
-
-        //        if (parsedArg.Data.CustomId == "test")
-        //        {
-        //            var role = _client.GetGuild(guildId).GetRole(618852744354332692);
-        //            await userAccount.AddRoleAsync(role);
-        //        }
-        //    }
-        //}
-
-        //private async Task VoiceStateUpdate(SocketUser user, SocketVoiceState state1, SocketVoiceState state2)
-        //{
-        //    var userAccount = (SocketGuildUser)user;
-        //    if (user.IsBot)
-        //        return;
-
-        //    if (state2.VoiceChannel?.Id == 623534623720472626)
-        //    {
-        //        await userAccount.VoiceChannel.DisconnectAsync();
-        //    }
-        //}
 
         public async Task RemoveButton(SocketMessageComponent parsedArg, SocketUserMessage msg)
         {
@@ -361,7 +288,8 @@ namespace LucaasBot.Handlers
                 return;
             }
 
-            var context = await _commands.ResolveContextAsync(_client, message).ConfigureAwait(false);
+            var name = message.Content.Substring(argPos).Split(' ').First();
+            var context = await _commands.ResolveContextAsync(_client, name, message);
             await _commands.ExecuteAsync(context, argPos, null, MultiMatchHandling.Best);
         }
 

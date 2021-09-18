@@ -44,7 +44,7 @@ namespace LucaasBot.Modules
             var queue = new SlashCommandBuilder()
                 .WithName("queue")
                 .WithDescription("Lists the current queue or adds a song to the queue.")
-                .AddOption("query", ApplicationCommandOptionType.String, "The link or name of the song to add to the queue.")
+                .AddOption("query", ApplicationCommandOptionType.String, "The link or name of the song to add to the queue.", false)
                 .Build();
 
             var queuenext = new SlashCommandBuilder()
@@ -73,14 +73,14 @@ namespace LucaasBot.Modules
             var listqueue = new SlashCommandBuilder()
                 .WithName("listqueue")
                 .WithDescription("Lists the current songs within the queue.")
-                .AddOption("page", ApplicationCommandOptionType.Integer, "The page of the queue to view")
+                .AddOption("page", ApplicationCommandOptionType.Integer, "The page of the queue to view", false)
                 .Build();
 
             var next = new SlashCommandBuilder()
                 .WithName("skip")
                 .WithDescription("Plays the next song in the queue.")
                 .WithDefaultPermission(false)
-                .AddOption("count", ApplicationCommandOptionType.Integer, "Skip X amount of songs")
+                .AddOption("count", ApplicationCommandOptionType.Integer, "Skip X amount of songs", false)
                 .Build();
 
             var stop = new SlashCommandBuilder()
@@ -193,9 +193,7 @@ namespace LucaasBot.Modules
         {
             if (MusicSlashCommandsFactory.MusicCommands.Contains(arg.Data.Name))
             {
-                var context = new DualPurposeContext(client, arg);
-
-                var result = await CommandHandler.Service.ExecuteAsync(context, arg.Data.Name, null);
+                
             }
         }
     }

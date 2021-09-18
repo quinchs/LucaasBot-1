@@ -79,7 +79,10 @@ namespace LucaasBot
                     if (comp.Data.CustomId == "page-left")
                     {
                         if (currentPage == 0)
+                        {
+                            await comp.DeferAsync();
                             return;
+                        }
                         lastPageChange = DateTime.UtcNow;
                         var toSend = await pageFactory(--currentPage).ConfigureAwait(false);
                         toSend.AddPaginatedFooter(currentPage, lastPage);
@@ -94,6 +97,8 @@ namespace LucaasBot
                             toSend.AddPaginatedFooter(currentPage, lastPage);
                             await comp.UpdateAsync(x => x.Embed = toSend.Build()).ConfigureAwait(false);
                         }
+                        else
+                            await comp.DeferAsync();
                     }
                 }
                 catch (Exception)

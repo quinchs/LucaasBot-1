@@ -25,6 +25,8 @@ namespace LucaasBot.Services
             remove => underlyingService.CommandExecuted -= value;
         }
 
+        private List<ModuleInfo> CustomModules = new List<ModuleInfo>(); 
+
         private CommandService underlyingService;
         private static readonly TypeInfo ModuleTypeInfo = typeof(DualPurposeModuleBase).GetTypeInfo();
         //private static const TypeInfo BaseModuleTypeInfo = typeof(ModuleBase<SocketCommandContext>).GetTypeInfo();
@@ -81,7 +83,10 @@ namespace LucaasBot.Services
                 ModuleInfo module = null;
 
                 if(ModuleTypeInfo.IsAssignableFrom(typeInfo))
+                {
                     module = await underlyingService.CreateModuleAsync("", (x) => BuildModule(x, typeInfo, services));
+                    CustomModules.Add(module);
+                }
                 else
                 {
                     module = await underlyingService.AddModuleAsync(typeInfo, services).ConfigureAwait(false);
@@ -95,16 +100,12 @@ namespace LucaasBot.Services
             return result;
         }
 
-        public async Task<ICommandContext> ResolveContextAsync(DiscordSocketClient client, SocketUserMessage message, IServiceProvider services = null)
+        public async Task<ICommandContext> ResolveContextAsync(DiscordSocketClient client, string commandName, SocketUserMessage message)
         {
-            var customContext = new DualPurposeContext(client, message);
-            var defaultContext = new SocketCommandContext(client, message);
-
-            var custom = await underlyingService.GetExecutableCommandsAsync(customContext, services).ConfigureAwait(false);
-
-            if (custom.Any())
-                return customContext;
-            else return defaultContext;
+            if (CustomModules.Any(x => x.Commands.Any(y => y.Name == commandName || y.Aliases.Contains(commandName))))
+                return new DualPurposeContext(client, message);
+            else
+                return new SocketCommandContext(client, message);
         }
 
         private IReadOnlyList<TypeInfo> Search(Assembly assembly)

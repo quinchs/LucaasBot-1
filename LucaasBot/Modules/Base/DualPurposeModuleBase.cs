@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.Rest;
 using Discord.WebSocket;
 using LucaasBot.Services;
 using System;
@@ -40,7 +41,7 @@ namespace LucaasBot
         public Task DeferAsync(bool ephemeral = false, RequestOptions options = null)
             => Context.Interaction.DeferAsync(ephemeral, options);
 
-        public Task FollowupAsync(string text = null, Embed[] embeds = null, bool isTTS = false, bool ephemeral = false, AllowedMentions allowedMentions = null, RequestOptions options = null, MessageComponent component = null, Embed embed = null)
+        public Task<RestFollowupMessage> FollowupAsync(string text = null, Embed[] embeds = null, bool isTTS = false, bool ephemeral = false, AllowedMentions allowedMentions = null, RequestOptions options = null, MessageComponent component = null, Embed embed = null)
             => Context.Interaction.FollowupAsync(text, embeds, isTTS, ephemeral, allowedMentions, options, component, embed);
 
         public object[] CreateInteractionArgs(CommandInfo info, DualPurposeCommandService service, object[] args)
@@ -55,16 +56,35 @@ namespace LucaasBot
 
                 if (Context.Interaction is SocketSlashCommand slash)
                 {
-                    var slashParam = slash.Data.Options.FirstOrDefault(x => x.Name == param.Name);
+                    var slashParam = slash.Data.Options?.FirstOrDefault(x => x.Name == param.Name);
 
-                    if (slashParam.Value.GetType().IsAssignableTo(param.Type))
+                    if (slashParam == null)
                     {
-                        returnParams.Add(slashParam.Value);
+                        returnParams.Add(Type.Missing);
+                        continue;
                     }
+
+                    var tp = slashParam.Value.GetType();
+
+                    object value = null;
+
+                    if (InternalConverters.ContainsKey((tp, param.Type)))
+                    {
+                        value = InternalConverters[(tp, param.Type)].Invoke(slashParam.Value);
+                    }
+                    else if (tp.IsAssignableTo(param.Type))
+                        value = slashParam.Value;
+
+                    returnParams.Add(value);
                 }
             }
 
             return returnParams.ToArray();
         }
+
+        private Dictionary<(Type from, Type to), Func<object, object>> InternalConverters = new Dictionary<(Type from, Type to), Func<object, object>>()
+        {
+            {(typeof(long), typeof(int)), (v) => { return Convert.ToInt32(v); } }
+        };
     }
 }

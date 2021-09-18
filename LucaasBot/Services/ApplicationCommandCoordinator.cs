@@ -96,79 +96,90 @@ namespace LucaasBot.Services
             }
         }
 
-
         private async Task InitializeCommandsAsync()
         {
             _ = Task.Run(async () =>
             {
-                await registrarSource.Task;
-
-                EmptyReadyQueue();
-
-                var global = _commands.Where(x => !x.GuildId.HasValue);
-                var guild = _commands.Where(x => x.GuildId.HasValue);
-
-                if (global.Any())
+                try
                 {
-                    var commands = await client.Rest.BulkOverwriteGlobalCommands(global.SelectMany(x => x.Properties).ToArray());
+                    await registrarSource.Task;
 
-                    foreach(var command in commands)
+                    EmptyReadyQueue();
+
+                    var global = _commands.Where(x => !x.GuildId.HasValue);
+                    var guild = _commands.Where(x => x.GuildId.HasValue);
+
+                    if (global.Any())
                     {
-                        global.FirstOrDefault(x => x.Properties.Any(x => x.Name.GetValueOrDefault() == command.Name))?.ExecuteSingleCallback(command);
+                        var commands = await client.Rest.BulkOverwriteGlobalCommands(global.SelectMany(x => x.Properties).ToArray());
+
+                        foreach (var command in commands)
+                        {
+                            global.FirstOrDefault(x => x.Properties.Any(x => x.Name.GetValueOrDefault() == command.Name))?.ExecuteSingleCallback(command);
+                        }
+
+                        foreach (var factoryRegisterInfo in global)
+                        {
+                            var factoryCommands = commands.Where(x => factoryRegisterInfo.Properties.Any(y => y.Name.GetValueOrDefault() == x.Name));
+
+                            factoryRegisterInfo.ExecuteAllCallback(factoryCommands.ToImmutableArray());
+                        }
                     }
 
-                    foreach(var factoryRegisterInfo in global)
+                    if (guild.Any())
                     {
-                        var factoryCommands = commands.Where(x => factoryRegisterInfo.Properties.Any(y => y.Name.GetValueOrDefault() == x.Name));
+                        Dictionary<ulong, List<ApplicationCommandProperties>> props = new();
 
-                        factoryRegisterInfo.ExecuteAllCallback(factoryCommands.ToImmutableArray());
+                        foreach (var factoryRegisterInfo in guild)
+                        {
+                            if (props.ContainsKey(factoryRegisterInfo.GuildId.Value))
+                            {
+                                var lc = new List<ApplicationCommandProperties>(factoryRegisterInfo.Properties);
+
+                                lc.AddRange(props[factoryRegisterInfo.GuildId.Value]);
+
+                                props[factoryRegisterInfo.GuildId.Value] = lc;
+                            }
+                            else
+                            {
+                                props.Add(factoryRegisterInfo.GuildId.Value, new List<ApplicationCommandProperties>(factoryRegisterInfo.Properties));
+                            }
+                        }
+
+                        foreach (var item in props)
+                        {
+                            // get the current list of commands.
+                            var current = await client.Rest.GetGuildApplicationCommands(item.Key);
+
+                            var difference = current.Where(x => !item.Value.Any(y => y.Name.GetValueOrDefault() == x.Name)).ToArray();
+
+                            item.Value.AddRange(difference.Select(x => x.ToProperties()));
+
+                            var commands = await client.Rest.BulkOverwriteGuildCommands(item.Value.ToArray(), item.Key);
+
+
+                            foreach (var command in commands)
+                            {
+                                guild.FirstOrDefault(x => x.Properties.Any(y => y.Name.GetValueOrDefault() == command.Name))?.ExecuteSingleCallback(command);
+                            }
+
+                            foreach (var regInfo in guild)
+                            {
+                                List<RestGuildCommand> allCommands = new List<RestGuildCommand>(commands);
+                                allCommands.AddRange(current);
+
+                                var distinctCommands = allCommands.GroupBy(x => x.Name).Select(x => x.First()).ToList();
+
+                                var cmds = distinctCommands.Where(x => regInfo.Properties.Any(y => commands.Any(z => z.Name == y.Name.GetValueOrDefault())));
+
+                                regInfo.ExecuteAllCallback(cmds.ToArray());
+                            }
+                        }
                     }
-                }    
-
-                if(guild.Any())
+                }
+                catch(Exception x)
                 {
-                    Dictionary<ulong, List<ApplicationCommandProperties>> props = new();
-
-                    foreach(var factoryRegisterInfo in guild)
-                    {
-                        if (props.ContainsKey(factoryRegisterInfo.GuildId.Value))
-                        {
-                            var lc = new List<ApplicationCommandProperties>(factoryRegisterInfo.Properties);
-
-                            lc.AddRange(props[factoryRegisterInfo.GuildId.Value]);
-
-                            props[factoryRegisterInfo.GuildId.Value] = lc;
-                        }
-                        else
-                        {
-                            props.Add(factoryRegisterInfo.GuildId.Value, new List<ApplicationCommandProperties>(factoryRegisterInfo.Properties));
-                        }
-                    }
-
-                    foreach(var item in props)
-                    {
-                        // get the current list of commands.
-                        var current = await client.Rest.GetGuildApplicationCommands(item.Key);
-
-                        var difference = current.Where(x => !item.Value.Any(y => y.Name.GetValueOrDefault() == x.Name)).ToArray();
-
-                        item.Value.AddRange(difference.Select(x => x.ToProperties()));
-
-                        var commands = await client.Rest.BulkOverwriteGuildCommands(item.Value.ToArray(), item.Key);
-
-
-                        foreach(var command in commands)
-                        {
-                            guild.FirstOrDefault(x => x.Properties.Any(y => y.Name.GetValueOrDefault() == command.Name))?.ExecuteSingleCallback(command);
-                        }
-
-                        foreach(var regInfo in guild)
-                        {
-                            var cmds = commands.Where(x => regInfo.Properties.Any(y => commands.Any(z => z.Name == y.Name.GetValueOrDefault())));
-
-                            regInfo.ExecuteAllCallback(cmds.ToArray());
-                        }
-                    }
+                    Logger.Warn(x, Severity.Core);
                 }
             });
         }

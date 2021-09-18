@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Audio;
+using Discord.Commands;
 using Discord.WebSocket;
 using LucaasBot.Music.Buffers;
 using LucaasBot.Music.Services;
@@ -38,7 +39,7 @@ namespace LucaasBot.Music.Entities
         public bool AutoDelete { get; set; }
         public uint MaxPlaytimeSeconds { get; set; }
 
-        private readonly Thread PlayerThread;
+        private Thread PlayerThread;
         private MusicQueue Queue { get; } = new MusicQueue();
         private TaskCompletionSource<bool> PauseTaskSource { get; set; } = null;
         private CancellationTokenSource SongCancelSource { get; set; }
@@ -53,6 +54,9 @@ namespace LucaasBot.Music.Entities
         private bool newVoiceChannel = false;
         private readonly GoogleApiService _google;
         private readonly DiscordSocketClient client;
+
+        private CancellationTokenSource PlayerAbortSource = new CancellationTokenSource();
+        private TaskCompletionSource PlayerAbortComplete;
 
         private bool cancel = false;
 
@@ -146,7 +150,45 @@ namespace LucaasBot.Music.Entities
             {
                 // voice channel moved
                 this.VoiceChannel = arg3.VoiceChannel;
+                await GetAudioClient(true);
             }
+        }
+
+        public async Task UpdateFromContext(ICommandContext context)
+        {
+            if(this.VoiceChannel.Id != (context.User as IGuildUser).VoiceChannel?.Id)
+            {
+                this.VoiceChannel = (context.User as IGuildUser).VoiceChannel;
+                //GetAudioClient(true);
+            }
+        }
+
+        private async Task RestartPlayerLoop()
+        {
+            if (PauseTaskSource != null)
+                PauseTaskSource.SetResult(true);
+
+            if (PlayerThread != null)
+            {
+                PlayerAbortComplete = new TaskCompletionSource();
+                PlayerAbortSource.Cancel();
+
+                await Task.WhenAny(PlayerAbortComplete.Task, Task.Delay(500));
+
+                PlayerAbortSource = new CancellationTokenSource();
+            }
+
+            PlayerThread = new Thread(new ThreadStart(PlayerLoop))
+            {
+                Priority = ThreadPriority.AboveNormal
+            };
+            PlayerThread.Start();
+        }
+
+        public async Task JoinAsync(IVoiceChannel channel)
+        {
+            this.VoiceChannel = channel;
+            await GetAudioClient(true);
         }
 
         private async void PlayerLoop()
@@ -173,21 +215,7 @@ namespace LucaasBot.Music.Entities
                     {
                         var streamUrl = await data.Song.Uri().ConfigureAwait(false);
                         b = new SongBuffer(streamUrl, data.Song.ProviderType == MusicType.Local);
-                        //_log.Info("Created buffer, buffering...");
-
-                        //var bufferTask = b.StartBuffering(cancelToken);
-                        //var timeout = Task.Delay(10000);
-                        //if (Task.WhenAny(bufferTask, timeout) == timeout)
-                        //{
-                        //    _log.Info("Buffering failed due to a timeout.");
-                        //    continue;
-                        //}
-                        //else if (!bufferTask.Result)
-                        //{
-                        //    _log.Info("Buffering failed due to a cancel or error.");
-                        //    continue;
-                        //}
-                        //_log.Info("Buffered. Getting audio client...");
+                        
                         var ac = await GetAudioClient().ConfigureAwait(false);
                         Logger.Log("Got Audio client", Severity.Music);
                         if (ac == null)
@@ -212,6 +240,12 @@ namespace LucaasBot.Music.Entities
                             AdjustVolume(buffer, Volume);
                             await pcm.WriteAsync(buffer, 0, buffer.Length, cancelToken).ConfigureAwait(false);
                             unchecked { _bytesSent += buffer.Length; }
+
+                            if (PlayerAbortSource?.Token.IsCancellationRequested ?? false)
+                            {
+                                PlayerAbortComplete.SetResult();
+                                return;
+                            }
 
                             await ((PauseTaskSource?.Task ?? Task.CompletedTask).ConfigureAwait(false));
                         }
@@ -387,21 +421,13 @@ namespace LucaasBot.Music.Entities
                     newVoiceChannel = false;
 
                     var curUser = await VoiceChannel.Guild.GetCurrentUserAsync().ConfigureAwait(false);
-                    //if (curUser.VoiceChannel != null)
-                    //{
-                    //    Logger.Log("Connecting", Severity.Music);
-                    //    var ac = await VoiceChannel.ConnectAsync().ConfigureAwait(false);
-                    //    Logger.Log("Connected, stopping", Severity.Music);
-                    //    await ac.StopAsync().ConfigureAwait(false);
-                    //    Logger.Log("Disconnected", Severity.Music);
-                    //    await Task.Delay(1000).ConfigureAwait(false);
-                    //}
+                    
                     Logger.Log("Connecting", Severity.Music);
-                    _audioClient = await VoiceChannel.ConnectAsync().ConfigureAwait(false);
-                    await curUser.ModifyAsync(x => x.Deaf = true);
+                    _audioClient = await VoiceChannel.ConnectAsync(true).ConfigureAwait(false);
                 }
-                catch
+                catch(Exception x)
                 {
+                    Logger.Warn(x, Severity.Music);
                     return null;
                 }
             return _audioClient;

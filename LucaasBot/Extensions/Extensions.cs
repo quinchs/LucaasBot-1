@@ -24,7 +24,7 @@ namespace LucaasBot
                         Name = command.Name,
                         DefaultPermission = command.DefaultPermission,
                         Description = command.Description,
-                        Options = command.Options.Any() ? command.Options.Select(x => new SlashCommandOptionBuilder()
+                        Options = command.Options?.Any() ?? false ? command.Options.Select(x => new SlashCommandOptionBuilder()
                         {
                             Type = x.Type,
                             Required = x.Required ?? false,
@@ -56,12 +56,12 @@ namespace LucaasBot
                 Name = x.Name,
                 Default = x.Default,
                 Description = x.Description,
-                Choices = x.Choices.Any() ? x.Choices.Select(y => new ApplicationCommandOptionChoiceProperties()
+                Choices = x.Choices?.Any() ?? false ? x.Choices.Select(y => new ApplicationCommandOptionChoiceProperties()
                 {
                     Name = y.Name,
                     Value = y.Value
                 }).ToList() : null,
-                Options = x.Options.Any() ? x.Options.Select(z => ToProperties(z)).ToList() : null
+                Options = x.Options?.Any() ?? false ? x.Options.Select(z => ToProperties(z)).ToList() : null
             };
         }
 
@@ -94,17 +94,19 @@ namespace LucaasBot
             return msg;
         }
 
-        public static async Task<IUserMessage> SendErrorAsync(this DualPurposeContext context, string description = null, bool ephemeral = false, MessageReference @ref = null)
+        public static async Task<IUserMessage> SendErrorAsync(this DualPurposeContext context, string description = null, bool ephemeral = false, MessageReference @ref = null, Action<EmbedBuilder> builder = null)
         {
             var embed = new EmbedBuilder()
                 .WithAuthor("Error", "https://cdn.discordapp.com/emojis/312314733816709120.png?v=1")
                 .WithDescription(description ?? "There was an error, check logs.")
-                .WithColor(Color.Red)
-                .Build();
+                .WithColor(Color.Red);
 
-            return await context.ReplyAsync(embed: embed, messageReference: @ref);
+            if (builder != null)
+                builder(embed);
+
+            return await context.ReplyAsync(embed: embed.Build(), ephemeral: ephemeral, messageReference: @ref);
         }
-        public static async Task<IUserMessage> SendSuccessAsync(this DualPurposeContext context, string description, bool ephemeral = false, MessageReference @ref = null, string footer = null)
+        public static async Task<IUserMessage> SendSuccessAsync(this DualPurposeContext context, string description, bool ephemeral = false, MessageReference @ref = null, string footer = null, Action<EmbedBuilder> builder = null)
         {
             var embed = new EmbedBuilder()
                 .WithAuthor("Success", "https://cdn.discordapp.com/emojis/312314752711786497.png?v=1")
@@ -113,6 +115,9 @@ namespace LucaasBot
 
             if (footer != null)
                 embed.WithFooter(footer);
+
+            if (builder != null)
+                builder(embed);
 
             return await context.ReplyAsync(embed: embed.Build(), ephemeral: ephemeral, messageReference: @ref);
         }

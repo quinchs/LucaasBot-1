@@ -21,7 +21,7 @@ namespace LucaasBot
         Core,
         Verbose,
         Music,
-        CommandService
+        CommandService,
     }
     public class Logger
     {

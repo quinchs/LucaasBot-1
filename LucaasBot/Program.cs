@@ -53,14 +53,13 @@ namespace LucaasBot
             var handlerService = new HandlerService(_client);
             var commandHandler = new CommandHandler(commandService, client);
 
-           
-
             await Task.Delay(-1);
         }
 
         private Task LogAsync(LogMessage log)
         {
-            if (log.Source.StartsWith("Audio ") && (log.Message?.StartsWith("Sent") ?? false))
+            if (log.Source.StartsWith("Audio ") && (log.Message?.StartsWith("Sent") ?? false) || 
+               (log.Source.StartsWith("Audio ") && (log.Message?.StartsWith("Buffer underrun") ?? false)))
                 return Task.CompletedTask;
 
             Severity? sev = null;

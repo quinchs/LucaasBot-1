@@ -40,10 +40,10 @@ namespace LucaasBot.Music.Services
             var gUsr = (IGuildUser)context.User;
             var txtCh = (ITextChannel)context.Channel;
             var vCh = gUsr.VoiceChannel;
-            return GetOrCreatePlayer(context.Guild.Id, vCh, txtCh);
+            return GetOrCreatePlayer(context.Guild.Id, vCh, txtCh, context);
         }
 
-        public async Task<MusicPlayer> GetOrCreatePlayer(ulong guildId, IVoiceChannel voiceCh, ITextChannel textCh)
+        public async Task<MusicPlayer> GetOrCreatePlayer(ulong guildId, IVoiceChannel voiceCh, ITextChannel textCh, ICommandContext context)
         {
             if (voiceCh == null || voiceCh.Guild != textCh.Guild)
             {
@@ -55,10 +55,10 @@ namespace LucaasBot.Music.Services
                 return null;
             }
 
-            return MusicPlayers.GetOrAdd(guildId, _ =>
+            var player = MusicPlayers.GetOrAdd(guildId, _ =>
             {
                 var vol = DefaultMusicVolume;
-                
+
                 var mp = new MusicPlayer(_client, this, Google, voiceCh, textCh, vol);
 
                 IUserMessage playingMessage = null;
@@ -118,6 +118,11 @@ namespace LucaasBot.Music.Services
                 Logger.Log("Done creating", Severity.Music);
                 return mp;
             });
+
+            //if(context != null)
+            //    await player.UpdateFromContext(context);
+
+            return player;
         }
 
 
@@ -138,7 +143,7 @@ namespace LucaasBot.Music.Services
             var si = await ResolveSong(related[new Random().Next(related.Length)], _client.CurrentUser.ToString(), MusicType.YouTube).ConfigureAwait(false);
             if (si == null)
                 throw new SongNotFoundException();
-            var mp = await GetOrCreatePlayer(txtCh.GuildId, vch, txtCh).ConfigureAwait(false);
+            var mp = await GetOrCreatePlayer(txtCh.GuildId, vch, txtCh, null).ConfigureAwait(false);
             mp.Enqueue(si);
         }
 
