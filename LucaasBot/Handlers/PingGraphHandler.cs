@@ -32,7 +32,7 @@ namespace LucaasBot.Handlers
 
             if(component.Data.CustomId == "refresh_ping")
             {
-                await component.AcknowledgeAsync();
+                await component.DeferAsync();
                 _ = Task.Run(async () => await RefreshGraph(component.Message));
             }
         }

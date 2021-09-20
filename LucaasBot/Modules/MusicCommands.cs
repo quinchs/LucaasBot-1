@@ -454,7 +454,7 @@ namespace LucaasBot.Modules
             mp.Next(sk);
 
             if (Context.IsInteraction)
-                await Context.Interaction.RespondAsync($"👍 Skipped {sk} song{(sk > 1 ? "s" : "")}.");
+                await Context.Interaction.FollowupAsync($"👍 Skipped {sk} song{(sk > 1 ? "s" : "")}.");
             else
                 await Context.Message.AddReactionAsync((Emoji)"👍");
         }
