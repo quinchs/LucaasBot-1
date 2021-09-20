@@ -83,6 +83,12 @@ namespace LucaasBot.Modules
                 }
             }
         }
+
+        private async Task InternalQueue(MusicPlayer mp, IAsyncEnumerable<SongInfo> songInfos, bool silent, bool queueFirst = false, bool forcePlay = false)
+        {
+
+        }
+
         private async Task InternalPlay(string query, bool forceplay)
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
@@ -454,7 +460,7 @@ namespace LucaasBot.Modules
             mp.Next(sk);
 
             if (Context.IsInteraction)
-                await Context.Interaction.RespondAsync($"👍 Skipped {sk} song{(sk > 1 ? "s" : "")}.");
+                await Context.Interaction.FollowupAsync($"👍 Skipped {sk} song{(sk > 1 ? "s" : "")}.");
             else
                 await Context.Message.AddReactionAsync((Emoji)"👍");
         }

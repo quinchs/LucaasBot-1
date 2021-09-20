@@ -41,6 +41,7 @@ namespace LucaasBot.Music.Entities
 
         private Thread PlayerThread;
         private MusicQueue Queue { get; } = new MusicQueue();
+        private MusicQueue PlaylistQueue { get; } = new MusicQueue();
         private TaskCompletionSource<bool> PauseTaskSource { get; set; } = null;
         private CancellationTokenSource SongCancelSource { get; set; }
         private ConcurrentHashSet<string> RecentlyPlayedUsers { get; } = new ConcurrentHashSet<string>();
@@ -202,6 +203,12 @@ namespace LucaasBot.Music.Entities
                 lock (locker)
                 {
                     data = Queue.Current;
+
+                    if(data.Song != null && data.Song is PlaylistInfo playlist)
+                    {
+                        data.Song = playlist.Songs.get
+                    }
+
                     cancelToken = SongCancelSource.Token;
                     manualSkip = false;
                     manualIndex = false;
@@ -377,6 +384,7 @@ namespace LucaasBot.Music.Entities
                                     Logger.Log("Next song", Severity.Music);
                                     lock (locker)
                                     {
+
                                         if (!Stopped)
                                             if (!AutoDelete)
                                                 Queue.Next();

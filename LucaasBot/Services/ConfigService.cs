@@ -24,8 +24,12 @@ namespace LucaasBot
         [ConfigSummary("The Hapsy file host token.")]
         public string HapsyToken { get; set; } = "HAPSY_TOKEN_HERE";
 
-        [ConfigSummary("To Google API key to be used for music related services.")]
+        [ConfigSummary("The Google API key to be used for music related services.")]
         public string GoogleApiKey { get; set; } = "GOOGLE_API_KEY_HERE";
+        [ConfigSummary("The spotify client id")]
+        public string SpotifyClientId { get; set; } = "CLIENT_ID_HERE";
+        [ConfigSummary("The spotify client secret")]
+        public string SpotifyClientSecret { get; set; } = "CLIENT_SECRET_HERE";
     }
 
     /// <summary>

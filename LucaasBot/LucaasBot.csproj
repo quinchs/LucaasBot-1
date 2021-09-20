@@ -16,6 +16,10 @@
 
   <ItemGroup>
     <PackageReference Include="ConvertApi" Version="3.0.7" />
+    <PackageReference Include="Discord.Net.Labs.Commands" Version="3.0.0" />
+    <PackageReference Include="Discord.Net.Labs.Core" Version="3.0.2" />
+    <PackageReference Include="Discord.Net.Labs.Rest" Version="3.0.2" />
+    <PackageReference Include="Discord.Net.Labs.WebSocket" Version="3.0.3" />
     <PackageReference Include="Google.Apis.Customsearch.v1" Version="1.49.0.2084" />
     <PackageReference Include="Google.Apis.Urlshortener.v1" Version="1.41.1.138" />
     <PackageReference Include="Google.Apis.YouTube.v3" Version="1.55.0.2440" />
@@ -24,15 +28,9 @@
     <PackageReference Include="MongoDB.Bson" Version="2.13.0" />
     <PackageReference Include="MongoDB.Driver" Version="2.13.0" />
     <PackageReference Include="RestSharp" Version="106.12.0" />
+    <PackageReference Include="SpotifyAPI.Web" Version="6.2.1" />
     <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
     <PackageReference Include="YoutubeExplode" Version="6.0.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\Documents\GitHub\Discord.Net Labs\Discord.Net-Labs\src\Discord.Net.Commands\Discord.Net.Commands.csproj" />
-    <ProjectReference Include="..\..\..\..\..\Documents\GitHub\Discord.Net Labs\Discord.Net-Labs\src\Discord.Net.Core\Discord.Net.Core.csproj" />
-    <ProjectReference Include="..\..\..\..\..\Documents\GitHub\Discord.Net Labs\Discord.Net-Labs\src\Discord.Net.Rest\Discord.Net.Rest.csproj" />
-    <ProjectReference Include="..\..\..\..\..\Documents\GitHub\Discord.Net Labs\Discord.Net-Labs\src\Discord.Net.WebSocket\Discord.Net.WebSocket.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -14,7 +14,23 @@ namespace LucaasBot.Music.Entities
         Radio,
         YouTube,
         Local,
-        Soundcloud
+        Soundcloud,
+        Spotify
+    }
+
+    public class PlaylistInfo : SongInfo
+    {
+        public string Type { get; set; }
+        public string[] Tracks { get; set; }
+        public string Label { get; set; }
+        public IAsyncEnumerable<SongInfo> Songs { get; set; }
+
+        public PlaylistInfo() { }
+
+        public PlaylistInfo(IAsyncEnumerable<SongInfo> songs)
+        {
+            this.Songs = songs;
+        }
     }
 
     public class SongInfo

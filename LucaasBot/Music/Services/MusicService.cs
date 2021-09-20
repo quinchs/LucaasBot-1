@@ -168,7 +168,7 @@ namespace LucaasBot.Music.Services
 
             ISongResolverFactory resolverFactory = new SongResolverFactory(_sc);
             var strategy = await resolverFactory.GetResolveStrategy(query, musicType).ConfigureAwait(false);
-            var sinfo = await strategy.ResolveSong(query).ConfigureAwait(false);
+            var sinfo = await strategy.ResolveSingleSong(query).ConfigureAwait(false);
 
             if (sinfo == null)
                 return null;
@@ -176,6 +176,28 @@ namespace LucaasBot.Music.Services
             sinfo.Queuer = queuer;
 
             return sinfo;
+        }
+
+        public async IAsyncEnumerable<SongInfo> ResolveSongs(string query, IUser queuer, MusicType? musicType = null)
+        {
+            if (string.IsNullOrEmpty(query))
+                throw new ArgumentNullException(nameof(query));
+
+            ISongResolverFactory resolverFactory = new SongResolverFactory(_sc);
+            var strategy = await resolverFactory.GetResolveStrategy(query, musicType).ConfigureAwait(false);
+            var sinfo = strategy.ResolveSong(query).ConfigureAwait(false);
+
+            var en = sinfo.GetAsyncEnumerator();
+
+            while(await en.MoveNextAsync())
+            {
+                var song = en.Current;
+                song.Queuer = queuer;
+
+                yield return song;
+            }
+
+            yield break;
         }
 
         public async Task DestroyAllPlayers()

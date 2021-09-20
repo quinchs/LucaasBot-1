@@ -1,6 +1,8 @@
 ﻿using LucaasBot.Music.Entities;
+using SpotifyAPI.Web;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -10,9 +12,8 @@ namespace LucaasBot.Music
 {
     public class SpotifyResolveStrategy : YoutubeResolveStrategy, IResolveStrategy
     {
-        public Regex TrackRegex = new Regex(@"<title>(.*?) - song by (.*?) \| Spotify<\/title>");
         private HttpClient Client = new HttpClient();
-        private readonly Logger _log;
+        private SpotifyApiService service = HandlerService.GetHandlerInstance<SpotifyApiService>();
 
         public SpotifyResolveStrategy()
             : base() 
@@ -20,35 +21,38 @@ namespace LucaasBot.Music
             Client.DefaultRequestHeaders.Add("User-Agent", $"Lucaasbot/{Environment.Version} DiscordBot");
         }
 
-        public static bool IsSpotifyLink(string query)
-            => query.Contains("https://open.spotify.com/track");
-
         public override async Task<SongInfo> ResolveSong(string query)
         {
-            if (!query.Contains("https://open.spotify.com/track"))
-            {
-                return null;
-            }
-
-            Logger.Write($"Getting track name from {query}", Severity.Music, Severity.Log);
-            var response = await Client.GetAsync(query).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
-                return null;
-
-            var titleMatch = TrackRegex.Match(await response.Content.ReadAsStringAsync());
-
-            if (!titleMatch.Success)
-                return null;
+            var tracks = await service.ResolveSongNamesAsync(query);
 
             Logger.Write("Got song name", Severity.Music, Severity.Log);
 
-            var info = await base.ResolveSong($"{titleMatch.Groups[1].Value} {titleMatch.Groups[2].Value}").ConfigureAwait(false);
+            if(tracks.Count == 1)
+            {
+                return await base.ResolveSong(tracks[0].Name);
+            }
+            else
+            {
+                var enmn = GetAsyncEnumerator(tracks);
 
-            info.Provider = "Spotify";
-            info.Title = $"{titleMatch.Groups[1].Value} {titleMatch.Groups[2].Value}";
-            info.SongUrl = query;
-            return info;
+                var info = await service.GetInfo(query);
+
+                var duration = TimeSpan.FromMilliseconds(tracks.Select(x => x.DurationMs).Sum());
+
+                info.TotalTime = duration;
+
+                return info;
+            }
+        }
+
+        private async IAsyncEnumerable<SongInfo> GetAsyncEnumerator(List<SimpleTrack> tracks)
+        {
+            foreach(var track in tracks)
+            {
+                yield return await base.ResolveSong(track.Name);
+            }
+
+            yield break;
         }
     }
 }

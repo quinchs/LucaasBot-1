@@ -19,18 +19,18 @@ namespace LucaasBot.Music
             {
                 case MusicType.YouTube:
                     return new YoutubeResolveStrategy();
-                case MusicType.Radio:
-                    return new RadioResolveStrategy();
+                //case MusicType.Radio:
+                //    return new RadioResolveStrategy();
                 case MusicType.Local:
                     return new LocalSongResolveStrategy();
-                case MusicType.Soundcloud:
-                    return new SoundcloudResolveStrategy(_sc);
+                //case MusicType.Soundcloud:
+                //    return new SoundcloudResolveStrategy(_sc);
                 default:
-                    if (_sc.IsSoundCloudLink(query))
-                        return new SoundcloudResolveStrategy(_sc);
-                    else if (RadioResolveStrategy.IsRadioLink(query))
-                        return new RadioResolveStrategy();
-                    else if (SpotifyResolveStrategy.IsSpotifyLink(query))
+                    //if (_sc.IsSoundCloudLink(query))
+                    //    return new SoundcloudResolveStrategy(_sc);
+                    //else if (RadioResolveStrategy.IsRadioLink(query))
+                    //    return new RadioResolveStrategy();
+                    if (SpotifyApiService.IsSpotifyLink(query))
                         return new SpotifyResolveStrategy();
                     // maybe add a check for local files in the future
                     else

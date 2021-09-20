@@ -1,18 +1,50 @@
 ﻿using LucaasBot.Music.Entities;
 using LucaasBot.Music.Services;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using YoutubeExplode;
+using YoutubeExplode.Playlists;
+using YoutubeExplode.Videos;
 
 namespace LucaasBot.Music
 {
     public class YoutubeResolveStrategy : IResolveStrategy
     {
-        private readonly Logger _log;
+        private Regex playlistId = new Regex(@"/[&?]list=([^&]+)/i");
 
         public virtual async Task<SongInfo> ResolveSong(string query)
+        {
+            var plMatch = playlistId.Match(query);
+
+            if (plMatch.Success)
+            {
+                var videos = ResolvePlaylistAsync(plMatch.Groups[1].Value);
+
+                return new PlaylistInfo(videos);
+            }
+            else
+            {
+                return await ResolveInternalAsync(query);
+            }
+        }
+
+        private async IAsyncEnumerable<SongInfo> ResolvePlaylistAsync(PlaylistId id)
+        {
+            var client = new YoutubeClient();
+
+            var videos = client.Playlists.GetVideosAsync(id).GetAsyncEnumerator();
+
+            while (await videos.MoveNextAsync())
+                yield return await GetInfoWithYtExplode(client, videos.Current.Id);
+
+            yield break;
+        }
+
+        private async Task<SongInfo> ResolveInternalAsync(string query)
         {
             try
             {
@@ -40,9 +72,15 @@ namespace LucaasBot.Music
 
             if (video == null)
                 return null;
-
+            
             Logger.Write("Video found", Severity.Music, Severity.Log);
-            var streamInfo = await client.Videos.Streams.GetManifestAsync(video.Id).ConfigureAwait(false);
+
+            return await GetInfoWithYtExplode(client, video.Id);
+        }
+
+        private async Task<SongInfo> GetInfoWithYtExplode(YoutubeClient client, VideoId id)
+        {
+            var streamInfo = await client.Videos.Streams.GetManifestAsync(id).ConfigureAwait(false);
             var stream = streamInfo
                 .GetAudioStreams()
                 .OrderByDescending(x => x.Bitrate)
@@ -53,7 +91,9 @@ namespace LucaasBot.Music
             if (stream == null)
                 return null;
 
-            return new SongInfo
+            var video = await client.Videos.GetAsync(id);
+
+            return new SongInfo()
             {
                 Provider = "YouTube",
                 ProviderType = MusicType.YouTube,
@@ -111,6 +151,7 @@ namespace LucaasBot.Music
                     ProviderType = MusicType.YouTube,
                     Query = "https://youtube.com/watch?v=" + data[1],
                 };
+
             }
             catch (Exception ex)
             {
