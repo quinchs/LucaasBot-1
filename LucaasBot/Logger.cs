@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -26,23 +28,40 @@ namespace LucaasBot
     }
     public class Logger
     {
+        private static List<Type> AsmTypes;
+
+        private static string GetCallingClass()
+        {
+            var trace = new StackTrace();
+
+            var frames = trace.GetFrames().Select(x => x.GetMethod().DeclaringType);
+
+            var type = frames.FirstOrDefault(x => x != typeof(Logger) && AsmTypes.Contains(x) && x.IsClass);
+
+            return $"{type.ReflectedType?.Name ?? type.Name}.cs";
+        }
+
+        public static void Critical(object data, Severity? sev = null)
+               => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Critical } : new Severity[] { Severity.Critical }, GetCallingClass());
 
         public static void Error(object data, Severity? sev = null)
-               => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Error } : new Severity[] { Severity.Error });
+               => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Error } : new Severity[] { Severity.Error }, GetCallingClass());
         public static void Log(object data, Severity? sev = null)
-               => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Log  } : new Severity[] { Severity.Log });
+               => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Log } : new Severity[] { Severity.Log }, GetCallingClass());
         public static void Warn(object data, Severity? sev = null)
-            => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Warning  } : new Severity[] { Severity.Warning });
+            => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Warning } : new Severity[] { Severity.Warning }, GetCallingClass());
         public static void Debug(object data, Severity? sev = null)
-            => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Debug } : new Severity[] { Severity.Debug });
+            => Write(data, sev.HasValue ? new Severity[] { sev.Value, Severity.Debug } : new Severity[] { Severity.Debug }, GetCallingClass());
 
-        public static void Write(object data, Severity sev = Severity.Log)
-           => _logEvent?.Invoke(null, (data, new Severity[] { sev }));
+        public static void Write(object data, Severity sev = Severity.Log, string caller = null)
+           => _logEvent?.Invoke(null, (data, new Severity[] { sev }, caller ?? GetCallingClass()));
         public static void Write(object data, params Severity[] sevs)
-            => _logEvent?.Invoke(null, (data, sevs));
+            => _logEvent?.Invoke(null, (data, sevs, GetCallingClass()));
+        public static void Write(object data, Severity[] sevs = null, string caller = null)
+            => _logEvent?.Invoke(null, (data, sevs, caller ?? GetCallingClass()));
 
-        private static ConcurrentQueue<KeyValuePair<object, Severity[]>> _queue = new ConcurrentQueue<KeyValuePair<object, Severity[]>>();
-        private static event EventHandler<(object data, Severity[] sev)> _logEvent;
+        private static ConcurrentQueue<KeyValuePair<(object, string), Severity[]>> _queue = new ConcurrentQueue<KeyValuePair<(object, string), Severity[]>>();
+        private static event EventHandler<(object data, Severity[] sev, string caller)> _logEvent;
         private static string _prevLine = "";
         private static int _prevCount = 1;
 
@@ -68,11 +87,14 @@ namespace LucaasBot
             _logEvent += Logger__logEvent;
 
             _streams.Add(new StreamWriter(Console.OpenStandardOutput()));
+
+            AsmTypes = new List<Type>(Assembly.GetAssembly(typeof(Logger)).DefinedTypes.Select(x => x.AsType()));
+
         }
 
-        private static void Logger__logEvent(object sender, (object data, Severity[] sev) e)
+        private static void Logger__logEvent(object sender, (object data, Severity[] sev, string caller) e)
         {
-            _queue.Enqueue(new KeyValuePair<object, Severity[]>(e.data, e.sev));
+            _queue.Enqueue(new KeyValuePair<(object, string), Severity[]>((e.data, e.caller), e.sev));
             if (_queue.Count > 0 && !inProg)
             {
                 inProg = true;
@@ -176,7 +198,8 @@ namespace LucaasBot
                 if (_queue.TryDequeue(out var res))
                 {
                     var sev = res.Value;
-                    var data = res.Key;
+                    var data = res.Key.Item1;
+                    var caller = res.Key.Item2;
 
                     var enumsWithColors = "";
                     foreach (var item in sev)
@@ -187,7 +210,7 @@ namespace LucaasBot
                             enumsWithColors += $" -> <{(int)SeverityColorParser[item]}>{item}</{(int)SeverityColorParser[item]}>";
                     }
 
-                    var items = ProcessColors($"\u001b[38;5;249m{DateTime.UtcNow.ToString("O")} " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - \u001b[37;1m{data}");
+                    var items = ProcessColors($"\u001b[38;5;249m{DateTime.UtcNow.ToString("O")} <Green>{caller}</Green> " + $"\u001b[1m[{enumsWithColors}]\u001b[0m - \u001b[37;1m{data}");
 
                     lock (lockObj)
                     {
@@ -236,7 +259,7 @@ namespace LucaasBot
 
         private static string ConsoleColorToANSI(ConsoleColor color)
         {
-            int ansiConverter(ConsoleColor c) 
+            int ansiConverter(ConsoleColor c)
             {
                 switch (c)
                 {

@@ -52,7 +52,7 @@ namespace LucaasBot
 
         private Task Client_Ready()
         {
-            _ = Task.Run(() =>
+            _ = Task.Run( async () =>
             {
                 var work = new List<Func<Task>>();
 
@@ -67,12 +67,13 @@ namespace LucaasBot
                         }
                         catch (Exception x)
                         {
-                            Console.Error.WriteLine($"Exception occured while initializing {item.Key.GetType().Name}: ", x);
+                            Logger.Write($"Exception occured while initializing {item.Key.GetType().Name}: {x}", new[] { Severity.Core, Severity.Critical }, nameof(HandlerService));
                         }
                     });
                 }
 
-                Task.WaitAll(work.Select(x => x()).ToArray());
+                await Task.WhenAll(work.Select(x => x()).ToArray());
+                Logger.Write($"All {Handlers.Count} handlers <Green>Initialized</Green>", new[] { Severity.Core, Severity.Log }, nameof(HandlerService));
             });
 
             return Task.CompletedTask;
