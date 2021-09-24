@@ -50,6 +50,11 @@ namespace LucaasBot
             if (!Context.IsInteraction)
                 return args;
 
+            if(Context.Interaction is SocketAutocompleteInteraction auto && info.Parameters.Count == 1)
+            {
+                return new object[] { auto.Data.Current.Value };
+            }
+
             for (int i = 0; i != info.Parameters.Count; i++)
             {
                 var param = info.Parameters[i];

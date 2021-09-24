@@ -4,9 +4,11 @@ using Discord.WebSocket;
 using LucaasBot.Handlers;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using YoutubeExplode;
 
 namespace LucaasBot.Modules
 {
@@ -33,7 +35,7 @@ namespace LucaasBot.Modules
             var play = new SlashCommandBuilder()
                 .WithName("play")
                 .WithDescription("Plays a song given a name, youtube url, spotify url, or soundcloud.")
-                .AddOption("query", ApplicationCommandOptionType.String, "The link or name of the song.", true)
+                .AddOption("query", ApplicationCommandOptionType.String, "The link or name of the song.", true, isAutocomplete: true)
                 .Build();
 
             var join = new SlashCommandBuilder()
@@ -44,7 +46,7 @@ namespace LucaasBot.Modules
             var queue = new SlashCommandBuilder()
                 .WithName("queue")
                 .WithDescription("Lists the current queue or adds a song to the queue.")
-                .AddOption("query", ApplicationCommandOptionType.String, "The link or name of the song to add to the queue.", false)
+                .AddOption("query", ApplicationCommandOptionType.String, "The link or name of the song to add to the queue.", false, isAutocomplete: true)
                 .Build();
 
             var queuenext = new SlashCommandBuilder()
@@ -58,6 +60,11 @@ namespace LucaasBot.Modules
                 .WithName("search")
                 .WithDescription("Searches youtube for songs/videos related to your query.")
                 .AddOption("query", ApplicationCommandOptionType.String, "The name or keywords to the video/song.")
+                .Build();
+
+            var related = new SlashCommandBuilder()
+                .WithName("related")
+                .WithDescription("Searches youtube for songs/videos related to the current song.")
                 .Build();
 
             var shuffle = new SlashCommandBuilder()
@@ -157,7 +164,8 @@ namespace LucaasBot.Modules
                 listqueue,
                 search,
                 shuffle,
-                autoplay
+                autoplay,
+                related
             };
         }
 
@@ -177,6 +185,61 @@ namespace LucaasBot.Modules
             ));
 
             MusicCommands.AddRange(commands.Select(x => x.Name));
+        }
+    }
+
+    public class MusicInteractionHandler : DiscordHandler
+    {
+        private YoutubeClient _client;
+
+        public override void Initialize(DiscordSocketClient client)
+        {
+            client.InteractionCreated += Client_InteractionCreated;
+            _client = new YoutubeClient();
+        }
+
+        private async Task Client_InteractionCreated(SocketInteraction arg)
+        {
+            if (arg is not SocketAutocompleteInteraction auto)
+                return;
+
+            if (auto.Data.CommandName != "queue" && auto.Data.CommandName != "play")
+                return;
+
+            var query = auto.Data.Current.Value as string;
+
+            List<AutocompleteResult> opt = new List<AutocompleteResult>();
+
+            async Task PopulateOptions()
+            {
+                await foreach (var item in _client.Search.GetResultsAsync(query))
+                {
+                    if (opt.Count >= 20)
+                        break;
+
+                    opt.Add(new AutocompleteResult()
+                    {
+                        Name = new string(item.Title.Take(100).ToArray()),
+                        Value = new string(item.Title.Take(100).ToArray()),
+                    });
+                }
+            };
+
+            var populate = PopulateOptions();
+
+            var s = new Stopwatch();
+            s.Start();
+            var r = await Task.WhenAny(Task.Delay(2900), populate);
+            s.Stop();
+            if(populate == r)
+            {
+                await auto.RespondAsync(opt);
+                Logger.Debug($"Youtube Search querry executed in {s.ElapsedMilliseconds}ms", Severity.Music);
+            }
+            else
+            {
+                Logger.Warn("Youtube Search querry took over 3 seconds", Severity.Music);
+            }
         }
     }
 }

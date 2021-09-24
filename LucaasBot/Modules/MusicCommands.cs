@@ -225,6 +225,21 @@ namespace LucaasBot.Modules
             try { await InternalQueue(mp, songInfo, false, true).ConfigureAwait(false); } catch (QueueFullException) { return; }
         }
 
+        [Command("related", RunMode = RunMode.Async)]
+        public async Task Related()
+        {
+            var mp = await MusicService.GetOrCreatePlayer(Context);
+
+            var current = mp.Current.Current;
+
+            if (current != null)
+                await QueueSearch(current.Query);
+            else
+            {
+                await Context.SendErrorAsync("No song currently playing");
+            }
+        }
+
         [Command("search", RunMode = RunMode.Async), Alias("s")]
         public async Task QueueSearch([Remainder] string query)
         {

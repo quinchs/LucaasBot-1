@@ -31,7 +31,6 @@ namespace LucaasBot
 
             var client = new DiscordSocketClient(new DiscordSocketConfig()
             {
-                AlwaysAcknowledgeInteractions = false,
                 LogLevel = LogSeverity.Debug,
                 GatewayIntents = (GatewayIntents)(GatewayIntents.All - GatewayIntents.GuildPresences)
             });
