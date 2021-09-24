@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using YoutubeExplode;
 
@@ -210,6 +211,8 @@ namespace LucaasBot.Modules
 
             List<AutocompleteResult> opt = new List<AutocompleteResult>();
 
+            var rg = new Regex(@"youtu(?:.*\/v\/|.*v\=|\.be\/)([A-Za-z0-9_\-]{11})");
+
             async Task PopulateOptions()
             {
                 await foreach (var item in _client.Search.GetResultsAsync(query))
@@ -217,10 +220,12 @@ namespace LucaasBot.Modules
                     if (opt.Count >= 20)
                         break;
 
+                    var id = rg.Match(item.Url).Groups[1].Value;
+
                     opt.Add(new AutocompleteResult()
                     {
                         Name = new string(item.Title.Take(100).ToArray()),
-                        Value = new string(item.Title.Take(100).ToArray()),
+                        Value = id,
                     });
                 }
             };
@@ -234,11 +239,11 @@ namespace LucaasBot.Modules
             if(populate == r)
             {
                 await auto.RespondAsync(opt);
-                Logger.Debug($"Youtube Search querry executed in {s.ElapsedMilliseconds}ms", Severity.Music);
+                Logger.Write($"Youtube Search querry executed in {s.ElapsedMilliseconds}ms", new Severity[] { Severity.Music, Severity.Log }, nameof(MusicInteractionHandler));
             }
             else
             {
-                Logger.Warn("Youtube Search querry took over 3 seconds", Severity.Music);
+                Logger.Write("Youtube Search querry took over 3 seconds", new Severity[] { Severity.Music, Severity.Warning }, nameof(MusicInteractionHandler));
             }
         }
     }

@@ -325,6 +325,18 @@ namespace LucaasBot.Handlers
                     Logger.Write($"Command Error: {result.Error} - {result.ErrorReason}{(result.Error.HasValue ? $"\n{executeResult.Exception}" : "")}", Severity.Core, Severity.Warning);
                 }
             }
+
+            if(result.ErrorReason == "Not in voice channel")
+            {
+                if(context is DualPurposeContext dp)
+                {
+                    await dp.SendErrorAsync("You must be in a voice channel to use this command!");
+                }
+                else
+                {
+                    await context.Channel.SendErrorAsync("You must be in a voice channel to use this command!");
+                }
+            }
         }
     }
 }

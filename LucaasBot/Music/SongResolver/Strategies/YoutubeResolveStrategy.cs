@@ -3,6 +3,7 @@ using LucaasBot.Music.Services;
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using YoutubeExplode;
 
@@ -10,7 +11,7 @@ namespace LucaasBot.Music
 {
     public class YoutubeResolveStrategy : IResolveStrategy
     {
-        private readonly Logger _log;
+        private Regex IdRegex = new Regex(@"([A-Za-z0-9_\-]{11})");
 
         public virtual async Task<SongInfo> ResolveSong(string query)
         {
@@ -36,7 +37,17 @@ namespace LucaasBot.Music
             var client = new YoutubeClient();
 
             Logger.Write("Searching for video", Severity.Music, Severity.Log);
-            var video = await client.Search.GetVideosAsync(query).FirstOrDefaultAsync();
+
+            YoutubeExplode.Search.VideoSearchResult video = null;
+            if (IdRegex.IsMatch(query))
+            {
+                var v = await client.Videos.GetAsync(query);
+                if (v != null)
+                    video = new YoutubeExplode.Search.VideoSearchResult(v.Id, v.Title, v.Author, v.Duration, v.Thumbnails);
+            }
+
+            if(video == null)
+                video = await client.Search.GetVideosAsync(query).FirstOrDefaultAsync();
 
             if (video == null)
                 return null;

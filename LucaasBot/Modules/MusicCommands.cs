@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace LucaasBot.Modules
 {
-    [RequireContext(ContextType.Guild), RequireChannel(828687366893076480)] // music channel id.
+    [RequireContext(ContextType.Guild), RequireChannel(828687366893076480), RequireVoiceChannel] // music channel id.
     public class MusicCommands : DualPurposeModuleBase
     {
         public MusicService MusicService
@@ -95,6 +95,9 @@ namespace LucaasBot.Modules
         {
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
 
+            if (mp == null)
+                return;
+
             if (string.IsNullOrWhiteSpace(query))
             {
                 if (Context.Message?.Attachments.Any() ?? false)
@@ -160,7 +163,10 @@ namespace LucaasBot.Modules
 
             var mp = await MusicService.GetOrCreatePlayer(Context).ConfigureAwait(false);
 
-            foreach(var item in goodFiles)
+            if (mp == null)
+                return;
+
+            foreach (var item in goodFiles)
             {
                 var song = await MusicService.ResolveSong(item, Context.User, MusicType.Local).ConfigureAwait(false);
                 await InternalQueue(mp, song, true).ConfigureAwait(false);
